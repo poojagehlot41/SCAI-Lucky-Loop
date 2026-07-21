@@ -1,0 +1,134 @@
+.wallet-page {
+  min-height: calc(100vh - 80px);
+  padding: 60px 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 15, 35, 0.98),
+    rgba(6, 10, 25, 1)
+  );
+}
+
+.wallet-hero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wallet-card {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px;
+  border-radius: 24px;
+  background: rgba(20, 28, 45, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.wallet-icon {
+  width: 85px;
+  height: 85px;
+  margin: 0 auto 25px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+}
+
+.wallet-card h1 {
+  color: #ffffff;
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.wallet-card p {
+  color: #b6bfd3;
+  line-height: 1.7;
+  margin-bottom: 35px;
+}
+
+.wallet-info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.wallet-info span {
+  display: block;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.wallet-info strong {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.wallet-address {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.copy-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  outline: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.copy-btn:hover {
+  transform: translateY(-2px);
+}
+
+.primary-btn,
+.secondary-btn {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.status-live {
+  color: #22c55e;
+}
+
+@media (max-width: 768px) {
+  .wallet-page {
+    padding: 40px 15px;
+  }
+
+  .wallet-card {
+    padding: 28px 20px;
+  }
+
+  .wallet-card h1 {
+    font-size: 1.7rem;
+  }
+
+  .wallet-address {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .copy-btn {
+    width: 100%;
+  }
+}

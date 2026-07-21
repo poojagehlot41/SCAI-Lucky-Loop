@@ -1,0 +1,16 @@
+@import "./reset.css";
+@import "./variables.css";
+@import "./layout.css";
+@import "./navbar.css";
+@import "./home.css";
+@import "./features.css";
+@import "./button.css";
+@import "./card.css";
+@import "./stats.css";
+@import "./footer.css";
+
+body {
+  background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  color: var(--text-primary);
+  font-family: Inter, Arial, sans-serif;
+}

@@ -1,0 +1,12 @@
+.container {
+  width: min(100% - 32px, var(--container));
+  margin-inline: auto;
+}
+
+section {
+  padding: 80px 0;
+}
+
+main {
+  min-height: calc(100vh - 120px);
+}
