@@ -71,8 +71,8 @@ function Profile() {
                   <Shield size={20} />
 
                   <div>
-                    <span>Wallet Balance</span>
-                    <strong>{balance} ETH</strong>
+                    <span>SCAI Balance</span>
+                    <strong>{balance} SCAI</strong>
                   </div>
                 </div>
 
