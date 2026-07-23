@@ -2,6 +2,8 @@ import { NavLink } from "react-router-dom";
 import { useWalletContext } from "../../context/WalletContext";
 import "../../styles/navbar.css";
 
+const ADMIN_WALLET = "0x4aBb2b8724E3677Bd685e0036aDe9F2bD7d5A860";
+
 function Navbar() {
   const {
     walletAddress,
@@ -14,6 +16,12 @@ function Navbar() {
   const shortAddress = walletAddress
     ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
     : "";
+
+  const isAdmin =
+    isConnected &&
+    walletAddress &&
+    walletAddress.toLowerCase() ===
+      ADMIN_WALLET.toLowerCase();
 
   const handleConnect = async () => {
     if (loading || isConnected) return;
@@ -43,7 +51,12 @@ function Navbar() {
           <NavLink to="/wallet">Wallet</NavLink>
           <NavLink to="/referral">Referral</NavLink>
           <NavLink to="/profile">Profile</NavLink>
-          <NavLink to="/admin">Admin</NavLink>
+
+          {isAdmin && (
+            <NavLink to="/admin">
+              Admin
+            </NavLink>
+          )}
         </nav>
 
         {!isConnected ? (
@@ -52,7 +65,9 @@ function Navbar() {
             onClick={handleConnect}
             disabled={loading}
           >
-            {loading ? "Connecting..." : "Connect Wallet"}
+            {loading
+              ? "Connecting..."
+              : "Connect Wallet"}
           </button>
         ) : (
           <div className="wallet-actions">

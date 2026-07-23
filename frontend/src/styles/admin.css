@@ -122,3 +122,66 @@
     font-size: 0.95rem;
   }
 }
+
+.admin-guide{
+    margin-top:2rem;
+    padding:1.5rem;
+    border-radius:18px;
+    background:rgba(255,255,255,.04);
+}
+
+.guide-item{
+    margin-top:1rem;
+}
+
+.guide-item strong{
+    display:block;
+    margin-bottom:.35rem;
+}
+
+.guide-item p{
+    opacity:.85;
+    line-height:1.6;
+}
+
+.admin-status{
+    margin-top:28px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.status-card{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 18px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;
+}
+
+.status-card span{
+    display:block !important;
+    color:#9ca3af;
+    font-size:15px;
+    font-weight:500;
+}
+
+.status-card strong{
+    display:block !important;
+    color:#22c55e;
+    font-size:15px;
+    font-weight:700;
+    text-align:right;
+    margin-left:18px;
+}
+
+.status-live{
+    color:#22c55e;
+}
+
+.status-pending{
+    color:#f59e0b;
+}

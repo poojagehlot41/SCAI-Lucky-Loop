@@ -18,15 +18,51 @@ function App() {
 
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/lottery" element={<Lottery />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/referral" element={<Referral />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route
+            path="/"
+            element={<Home />}
+          />
 
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
+          <Route
+            path="/lottery"
+            element={<Lottery />}
+          />
+
+          <Route
+            path="/wallet"
+            element={<Wallet />}
+          />
+
+          <Route
+            path="/referral"
+            element={<Referral />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+
+          {/* Temporary: Admin page open for testing */}
+          <Route
+            path="/admin"
+            element={<Admin />}
+          />
+
+          <Route
+            path="/404"
+            element={<NotFound />}
+          />
+
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to="/404"
+                replace
+              />
+            }
+          />
         </Routes>
       </main>
 

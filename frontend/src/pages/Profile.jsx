@@ -7,6 +7,8 @@ import {
   Ticket,
 } from "lucide-react";
 
+import { useEffect, useState } from "react";
+
 import { useWalletContext } from "../context/WalletContext";
 
 import "../styles/profile.css";
@@ -20,8 +22,35 @@ function Profile() {
     connectWallet,
     disconnectWallet,
     loading,
+    contract,
     contractReady,
   } = useWalletContext();
+
+  const [ticketCount, setTicketCount] = useState("0");
+  const [winCount, setWinCount] = useState("0");
+
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (!contractReady || !contract || !walletAddress) return;
+
+      try {
+        const tickets = await contract.getTotalUserTickets(
+          walletAddress
+        );
+
+        const wins = await contract.getTotalWins(
+          walletAddress
+        );
+
+        setTicketCount(tickets.toString());
+        setWinCount(wins.toString());
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadProfileData();
+  }, [contractReady, contract, walletAddress]);
 
   return (
     <main className="profile-page">
@@ -51,7 +80,6 @@ function Profile() {
               <>
                 <div className="profile-info">
                   <Wallet size={20} />
-
                   <div>
                     <span>Wallet Address</span>
                     <strong>{walletAddress}</strong>
@@ -60,47 +88,42 @@ function Profile() {
 
                 <div className="profile-info">
                   <Globe size={20} />
-
                   <div>
                     <span>Network</span>
-                    <strong>{network || "--"}</strong>
+                    <strong>{network || "Ethereum Sepolia"}</strong>
                   </div>
                 </div>
 
                 <div className="profile-info">
                   <Shield size={20} />
-
                   <div>
-                    <span>SCAI Balance</span>
-                    <strong>{balance} SCAI</strong>
+                    <span>Wallet Balance</span>
+                    <strong>{balance} ETH</strong>
                   </div>
                 </div>
 
                 <div className="profile-info">
                   <Ticket size={20} />
-
                   <div>
                     <span>Total Tickets</span>
                     <strong>
-                      {contractReady ? "Loading..." : "0"}
+                      {contractReady ? ticketCount : "--"}
                     </strong>
                   </div>
                 </div>
 
                 <div className="profile-info">
                   <Trophy size={20} />
-
                   <div>
                     <span>Total Wins</span>
                     <strong>
-                      {contractReady ? "Loading..." : "0"}
+                      {contractReady ? winCount : "--"}
                     </strong>
                   </div>
                 </div>
 
                 <div className="profile-status">
                   <span>Wallet Status</span>
-
                   <strong className="status-connected">
                     Connected
                   </strong>
@@ -126,8 +149,8 @@ function Profile() {
                   <div className="profile-warning">
                     <p>
                       ⚠️ Smart contract has not been deployed yet.
-                      Your wallet is connected successfully. Lottery
-                      statistics will become available after deployment.
+                      Lottery statistics will be available after
+                      deployment.
                     </p>
                   </div>
                 )}

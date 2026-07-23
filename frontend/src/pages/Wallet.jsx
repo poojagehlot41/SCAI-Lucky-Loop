@@ -85,12 +85,12 @@ function Wallet() {
 
                 <div className="wallet-info">
                   <span>Network</span>
-                  <strong>{network || "--"}</strong>
+                  <strong>{network || "Ethereum Sepolia"}</strong>
                 </div>
 
                 <div className="wallet-info">
                   <span>Balance</span>
-                  <strong>{balance} SCAI</strong>
+                  <strong>{balance} ETH</strong>
                 </div>
 
                 <div className="wallet-info">

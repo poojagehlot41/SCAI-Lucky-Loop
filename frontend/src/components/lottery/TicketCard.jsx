@@ -6,10 +6,7 @@ import { useWalletContext } from "../../context/WalletContext";
 import contractService from "../../services/contractService";
 
 function TicketCard() {
-  const {
-    isConnected,
-    contractReady,
-  } = useWalletContext();
+  const { isConnected, contractReady } = useWalletContext();
 
   const [loading, setLoading] = useState(false);
   const [ticketPrice, setTicketPrice] = useState("Unavailable");
@@ -29,7 +26,7 @@ function TicketCard() {
         setTicketPrice(
           `${Number(
             ethers.formatEther(price)
-          ).toFixed(4)} SCAI`
+          ).toFixed(4)} ETH`
         );
       } catch (error) {
         console.error(error);
@@ -68,14 +65,16 @@ function TicketCard() {
 
       await tx.wait();
 
-      alert("🎉 Ticket purchased successfully!");
+      alert(
+        "🎉 Your ticket has been successfully purchased and recorded on the blockchain."
+      );
 
       const latestPrice = await contract.ticketPrice();
 
       setTicketPrice(
         `${Number(
           ethers.formatEther(latestPrice)
-        ).toFixed(4)} SCAI`
+        ).toFixed(4)} ETH`
       );
     } catch (error) {
       console.error(error);
