@@ -2,6 +2,8 @@
 
 pragma solidity ^0.8.20;
 
+/// @title SCAI Lucky Loop Lottery Contract
+
 contract Lottery {
 
     address public owner;
@@ -12,6 +14,11 @@ contract Lottery {
 
     bool public lotteryOpen;
 
+    // NEW
+    uint256 public lotteryEndTime;
+
+    uint256 public ticketDuration = 1 days;
+
     uint256 public totalTicketsSold;
 
     uint256 public totalPrizeDistributed;
@@ -19,6 +26,24 @@ contract Lottery {
     uint256 public totalLotteriesCompleted;
 
     address[] private players;
+    struct UserInfo {
+    uint256 totalTickets;
+    uint256 totalWins;
+    uint256 rewardBalance;
+   }
+
+   struct Ticket {
+    uint256 ticketNumber;
+    uint256 lotteryId;
+    bool winner;
+    uint256 timestamp;
+   }
+
+    mapping(address => UserInfo) public users;
+
+    mapping(address => Ticket[]) private userTickets;
+
+    uint256 private nextTicketNumber = 1001;
 
     struct LotteryRound {
         uint256 id;
@@ -41,6 +66,11 @@ contract Lottery {
         address indexed winner,
         uint256 indexed lotteryId,
         uint256 prize
+    );
+     
+     event RewardCredited(
+    address indexed user,
+    uint256 amount
     );
 
     event LotteryOpened(uint256 indexed lotteryId);
@@ -72,7 +102,51 @@ contract Lottery {
         ticketPrice = 0.01 ether;
 
         lotteryOpen = true;
+
+        // NEW
+        // NEW
+lotteryEndTime = block.timestamp + ticketDuration;
     }
+                 
+                   function buyTicketUsingReward()
+    external
+    lotteryIsOpen
+{
+    require(
+        block.timestamp < lotteryEndTime,
+        "Ticket sale has ended"
+    );
+
+    require(
+        users[msg.sender].rewardBalance >= ticketPrice,
+        "Insufficient reward balance"
+    );
+
+    users[msg.sender].rewardBalance -= ticketPrice;
+
+    players.push(msg.sender);
+
+    users[msg.sender].totalTickets++;
+
+    userTickets[msg.sender].push(
+        Ticket({
+            ticketNumber: nextTicketNumber,
+            lotteryId: lotteryId,
+            winner: false,
+            timestamp: block.timestamp
+        })
+    );
+
+    nextTicketNumber++; 
+
+    totalTicketsSold++;
+
+    emit TicketPurchased(
+        msg.sender,
+        lotteryId,
+        ticketPrice
+    );
+}
 
     function buyTicket()
         external
@@ -81,11 +155,29 @@ contract Lottery {
     {
 
         require(
+            block.timestamp < lotteryEndTime,
+            "Ticket sale has ended"
+        );
+
+        require(
             msg.value == ticketPrice,
             "Invalid ticket price"
         );
 
         players.push(msg.sender);
+
+        users[msg.sender].totalTickets++;
+
+    userTickets[msg.sender].push(
+    Ticket({
+        ticketNumber: nextTicketNumber,
+        lotteryId: lotteryId,
+        winner: false,
+        timestamp: block.timestamp
+    })
+   );
+
+      nextTicketNumber++;
 
         totalTicketsSold++;
 
@@ -135,12 +227,29 @@ contract Lottery {
         ticketPrice = newPrice;
     }
 
+    function setTicketDuration(
+    uint256 durationInSeconds
+)
+    external
+    onlyOwner
+{
+    require(
+        durationInSeconds > 0,
+        "Invalid duration"
+    );
+
+    ticketDuration = durationInSeconds;
+}
+
     function openLottery()
         external
         onlyOwner
     {
 
         lotteryOpen = true;
+
+        // NEW
+        lotteryEndTime = block.timestamp + ticketDuration;
 
         emit LotteryOpened(
             lotteryId
@@ -159,7 +268,7 @@ contract Lottery {
         );
     }
 
-        function selectWinner()
+    function selectWinner()
         external
         onlyOwner
     {
@@ -168,6 +277,11 @@ contract Lottery {
             lotteryOpen,
             "Lottery closed"
         );
+        
+         require(
+    block.timestamp >= lotteryEndTime,
+    "Lottery is still running"
+);
 
         require(
             players.length > 0,
@@ -199,6 +313,20 @@ contract Lottery {
 
         payable(winner).transfer(prize);
 
+        users[winner].totalWins++;
+
+     users[winner].rewardBalance += ticketPrice;
+
+     uint256 lastIndex =
+    userTickets[winner].length - 1;
+
+     userTickets[winner][lastIndex].winner = true;
+
+     emit RewardCredited(
+    winner,
+    ticketPrice
+    );
+
         history[lotteryId] = LotteryRound({
             id: lotteryId,
             prizePool: prize,
@@ -222,8 +350,59 @@ contract Lottery {
 
         lotteryId++;
 
-        lotteryOpen = true;
+       lotteryOpen = true;
+
+// NEW
+lotteryEndTime = block.timestamp + ticketDuration;
     }
+      
+                    function getUserTickets(
+    address user
+)
+    external
+    view
+    returns (Ticket[] memory)
+{
+    return userTickets[user];
+}
+
+          function getRewardBalance(
+    address user
+)
+    external
+    view
+    returns (uint256)
+{
+    return users[user].rewardBalance;
+}
+
+function getTotalWins(
+    address user
+)
+    external
+    view
+    returns (uint256)
+{
+    return users[user].totalWins;
+}
+
+function getTotalUserTickets(
+    address user
+)
+    external
+    view
+    returns (uint256)
+{
+    return users[user].totalTickets;
+}
+
+function getNextTicketNumber()
+    external
+    view
+    returns (uint256)
+{
+    return nextTicketNumber;
+}
 
     function getLotteryRound(
         uint256 id
