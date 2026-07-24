@@ -21,11 +21,21 @@ export const WalletProvider = ({ children }) => {
   const [contractReady, setContractReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
+  const [rewardBalance, setRewardBalance] = useState("0");
+  const [totalWins, setTotalWins] = useState(0);
+  const [userTickets, setUserTickets] = useState([]);
+
   const resetWalletData = useCallback(() => {
     setBalance("0.0000");
     setNetwork("");
+
     setContract(null);
     setContractReady(false);
+
+    setRewardBalance("0");
+    setTotalWins(0);
+    setUserTickets([]);
+
     contractService.reset();
   }, []);
 
@@ -43,9 +53,7 @@ export const WalletProvider = ({ children }) => {
         return;
       }
 
-      const provider = new ethers.BrowserProvider(
-        window.ethereum
-      );
+      const provider = new ethers.BrowserProvider(window.ethereum);
 
       const balanceWei = await provider.getBalance(
         wallet.walletAddress
@@ -58,7 +66,18 @@ export const WalletProvider = ({ children }) => {
       );
 
       const networkInfo = await provider.getNetwork();
-      setNetwork(networkInfo.name);
+
+const chainId = Number(networkInfo.chainId);
+
+if (chainId === 11155111) {
+  setNetwork("Sepolia");
+} else if (chainId === 31337) {
+  setNetwork("Hardhat Local");
+} else if (chainId === 1337) {
+  setNetwork("Localhost");
+} else {
+  setNetwork(networkInfo.name);
+}
 
       const contractInstance =
         await contractService.getContract();
@@ -66,9 +85,40 @@ export const WalletProvider = ({ children }) => {
       if (contractInstance) {
         setContract(contractInstance);
         setContractReady(true);
+
+        try {
+          const reward =
+            await contractInstance.getRewardBalance(
+              wallet.walletAddress
+            );
+
+          const wins =
+            await contractInstance.getTotalWins(
+              wallet.walletAddress
+            );
+
+          const tickets =
+            await contractInstance.getUserTickets(
+              wallet.walletAddress
+            );
+
+          setRewardBalance(reward.toString());
+          setTotalWins(Number(wins));
+          setUserTickets(tickets);
+        } catch (error) {
+          console.error(error);
+
+          setRewardBalance("0");
+          setTotalWins(0);
+          setUserTickets([]);
+        }
       } else {
         setContract(null);
         setContractReady(false);
+
+        setRewardBalance("0");
+        setTotalWins(0);
+        setUserTickets([]);
       }
     } catch (error) {
       console.error(error);
@@ -141,8 +191,7 @@ export const WalletProvider = ({ children }) => {
       value={{
         walletAddress: wallet.walletAddress,
         isConnected: wallet.isConnected,
-        loading:
-          wallet.loading || initializing,
+        loading: wallet.loading || initializing,
 
         connectWallet,
         disconnectWallet,
@@ -150,11 +199,20 @@ export const WalletProvider = ({ children }) => {
         balance,
         network,
 
+        rewardBalance,
+        totalWins,
+        userTickets,
+
         contract,
         contractReady,
 
         setBalance,
         setNetwork,
+
+        setRewardBalance,
+        setTotalWins,
+        setUserTickets,
+
         setContract,
       }}
     >

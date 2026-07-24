@@ -214,9 +214,9 @@ function Admin() {
                 }
               >
                 <Trophy size={18} />
-                {processing
-                  ? "Processing..."
-                  : "Select Winner"}
+              {processing
+              ? "Processing..."
+              : "Run Winner Selection"}
               </button>
 
               <button
@@ -262,11 +262,10 @@ function Admin() {
               </div>
 
               <div className="guide-item">
-                      <strong>Select Winner</strong>
-                   <p>
-                           Randomly selects a winner from all purchased tickets and records
-                           the result on-chain.
-                  </p>
+                      <strong>Automatic Winner Selection</strong>
+                <p>
+                      Once the ticket sale period ends, the winner is selected from all purchased tickets and the result is recorded on-chain.
+                </p>
              </div>
 
             <div className="guide-item">

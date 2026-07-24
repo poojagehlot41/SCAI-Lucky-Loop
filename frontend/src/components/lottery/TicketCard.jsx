@@ -6,36 +6,61 @@ import { useWalletContext } from "../../context/WalletContext";
 import contractService from "../../services/contractService";
 
 function TicketCard() {
-  const { isConnected, contractReady } = useWalletContext();
+const {
+  isConnected,
+  contractReady,
+  walletAddress,
+  rewardBalance,
+} = useWalletContext();
 
   const [loading, setLoading] = useState(false);
   const [ticketPrice, setTicketPrice] = useState("Unavailable");
+  const [ticketNumber, setTicketNumber] = useState("--");
+
+  const loadTicketDetails = async () => {
+    try {
+      const contract = await contractService.getContract();
+
+      if (!contract) {
+        setTicketPrice("Unavailable");
+        return;
+      }
+
+      const price = await contract.ticketPrice();
+
+      setTicketPrice(
+        `${Number(
+          ethers.formatEther(price)
+        ).toFixed(4)} ETH`
+      );
+
+      if (walletAddress) {
+        const tickets = await contract.getUserTickets(
+          walletAddress
+        );
+
+        if (tickets.length > 0) {
+          const latestTicket =
+            tickets[tickets.length - 1];
+
+          setTicketNumber(
+            latestTicket.ticketNumber.toString()
+          );
+        } else {
+          setTicketNumber("--");
+        }
+      }
+   } catch (error) {
+  console.error(error);
+
+  setTicketPrice("Unavailable");
+  setTicketNumber("--");
+}
+  };
 
   useEffect(() => {
-    const loadTicketPrice = async () => {
-      try {
-        const contract = await contractService.getContract();
-
-        if (!contract) {
-          setTicketPrice("Unavailable");
-          return;
-        }
-
-        const price = await contract.ticketPrice();
-
-        setTicketPrice(
-          `${Number(
-            ethers.formatEther(price)
-          ).toFixed(4)} ETH`
-        );
-      } catch (error) {
-        console.error(error);
-        setTicketPrice("Unavailable");
-      }
-    };
-
-    loadTicketPrice();
-  }, []);
+    loadTicketDetails();
+  }, [walletAddress]);
 
   const handleBuyTicket = async () => {
     try {
@@ -65,17 +90,18 @@ function TicketCard() {
 
       await tx.wait();
 
-      alert(
-        "🎉 Your ticket has been successfully purchased and recorded on the blockchain."
-      );
+      await loadTicketDetails();
 
-      const latestPrice = await contract.ticketPrice();
+const tickets = await contract.getUserTickets(
+  walletAddress
+);
 
-      setTicketPrice(
-        `${Number(
-          ethers.formatEther(latestPrice)
-        ).toFixed(4)} ETH`
-      );
+const latestTicket =
+  tickets[tickets.length - 1];
+
+alert(
+  `🎉 Ticket purchased successfully!\n\nYour Ticket Number: ${latestTicket.ticketNumber}`
+);
     } catch (error) {
       console.error(error);
 
@@ -88,6 +114,46 @@ function TicketCard() {
       setLoading(false);
     }
   };
+
+   const handleRewardTicket = async () => {
+  try {
+    if (!isConnected) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    if (!contractReady) {
+      alert("Unable to connect to the smart contract.");
+      return;
+    }
+
+    setLoading(true);
+
+    const contract =
+      await contractService.getContract();
+
+    const tx =
+      await contract.buyTicketUsingReward();
+
+    await tx.wait();
+
+    await loadTicketDetails();
+
+    alert(
+      "🎉 Ticket purchased using Reward Balance!"
+    );
+  } catch (error) {
+    console.error(error);
+
+    alert(
+      error.reason ||
+      error.message ||
+      "Reward purchase failed."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="lottery-card">
@@ -104,8 +170,17 @@ function TicketCard() {
 
       <div className="lottery-info">
         <span>Ticket Price</span>
-
         <strong>{ticketPrice}</strong>
+      </div>
+
+      <div className="lottery-info">
+        <span>Your Ticket</span>
+        <strong>{ticketNumber}</strong>
+      </div>
+
+      <div className="lottery-info">
+        <span>Reward Balance</span>
+        <strong>{rewardBalance} SCAI</strong>
       </div>
 
       <div className="lottery-info">
@@ -133,6 +208,20 @@ function TicketCard() {
           ? "Processing..."
           : "Buy Ticket"}
       </button>
+      
+      <button
+  className="secondary-btn"
+  onClick={handleRewardTicket}
+  disabled={
+    loading ||
+    Number(rewardBalance) <= 0
+  }
+>
+  {loading
+    ? "Processing..."
+    : "Buy Using Reward"}
+</button>
+      
     </div>
   );
 }

@@ -11,6 +11,7 @@ const StatsSection = () => {
     prizePool: "--",
     status: "--",
     referrals: "Live",
+    winner: "No Winner Yet",
   });
 
   useEffect(() => {
@@ -22,6 +23,36 @@ const StatsSection = () => {
         const prizePool = await contract.getPrizePool();
         const lotteryOpen = await contract.lotteryOpen();
 
+        let winnerAddress = "No Winner Yet";
+
+        try {
+          const currentLotteryId =
+            await contract.getCurrentLotteryId();
+
+          if (Number(currentLotteryId) > 1) {
+            const round =
+              await contract.getLotteryRound(
+                Number(currentLotteryId) - 1
+              );
+
+            if (
+              round.completed &&
+              round.winner !==
+                "0x0000000000000000000000000000000000000000"
+            ) {
+              winnerAddress = `${round.winner.slice(
+                0,
+                6
+              )}...${round.winner.slice(-4)}`;
+            }
+          }
+        } catch (err) {
+          console.log(
+            "Winner data unavailable",
+            err
+          );
+        }
+
         setStats({
           players: players.toString(),
           prizePool: `${Number(
@@ -29,13 +60,24 @@ const StatsSection = () => {
           ).toFixed(4)} ETH`,
           status: lotteryOpen ? "Open" : "Closed",
           referrals: "Live",
+          winner: winnerAddress,
         });
       } catch (error) {
-        console.error("Failed to load stats:", error);
+        console.error(
+          "Failed to load stats:",
+          error
+        );
       }
     };
 
     loadStats();
+
+    const interval = setInterval(
+      loadStats,
+      10000
+    );
+
+    return () => clearInterval(interval);
   }, [contract, contractReady]);
 
   const heroStats = [
@@ -49,7 +91,8 @@ const StatsSection = () => {
       value: stats.prizePool,
       title: "Prize Pool",
     },
-    {
+
+        {
       id: 3,
       value: stats.referrals,
       title: "Referral Rewards",
@@ -59,6 +102,11 @@ const StatsSection = () => {
       value: stats.status,
       title: "Lottery Status",
     },
+    {
+      id: 5,
+      value: stats.winner,
+      title: "Previous Winner",
+    },
   ];
 
   return (
@@ -66,7 +114,10 @@ const StatsSection = () => {
       <div className="container">
         <div className="stats-grid">
           {heroStats.map((item) => (
-            <div key={item.id} className="stat-card">
+            <div
+              key={item.id}
+              className="stat-card"
+            >
               <h2>{item.value}</h2>
               <p>{item.title}</p>
             </div>
