@@ -10,26 +10,34 @@ function PlayersCard() {
   const [players, setPlayers] = useState(0);
 
   useEffect(() => {
-    const loadPlayers = async () => {
-      try {
-        const contract = await contractService.getContract();
+  const loadPlayers = async () => {
+    try {
+      const contract = await contractService.getContract();
 
-        if (!contract) {
-          setPlayers(0);
-          return;
-        }
-
-        const totalPlayers = await contract.getPlayersCount();
-
-        setPlayers(Number(totalPlayers));
-      } catch (error) {
-        console.error(error);
+      if (!contract) {
         setPlayers(0);
+        return;
       }
-    };
 
+      const totalPlayers = await contract.getPlayersCount();
+
+      setPlayers(Number(totalPlayers));
+    } catch (error) {
+      console.error(error);
+      setPlayers(0);
+    }
+  };
+
+  if (!contractReady) return;
+
+  loadPlayers();
+
+  const interval = setInterval(() => {
     loadPlayers();
-  }, []);
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [contractReady]);
 
   return (
     <div className="lottery-card">

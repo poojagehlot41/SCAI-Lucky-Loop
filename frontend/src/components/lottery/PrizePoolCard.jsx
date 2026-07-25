@@ -11,28 +11,36 @@ function PrizePoolCard() {
   const [prizePool, setPrizePool] = useState("0.0000");
 
   useEffect(() => {
-    const loadPrizePool = async () => {
-      try {
-        const contract = await contractService.getContract();
+  const loadPrizePool = async () => {
+    try {
+      const contract = await contractService.getContract();
 
-        if (!contract) {
-          setPrizePool("0.0000");
-          return;
-        }
-
-        const pool = await contract.getPrizePool();
-
-        setPrizePool(
-          Number(ethers.formatEther(pool)).toFixed(4)
-        );
-      } catch (error) {
-        console.error(error);
+      if (!contract) {
         setPrizePool("0.0000");
+        return;
       }
-    };
 
+      const pool = await contract.getPrizePool();
+
+      setPrizePool(
+        Number(ethers.formatEther(pool)).toFixed(4)
+      );
+    } catch (error) {
+      console.error(error);
+      setPrizePool("0.0000");
+    }
+  };
+
+  if (!contractReady) return;
+
+  loadPrizePool();
+
+  const interval = setInterval(() => {
     loadPrizePool();
-  }, []);
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [contractReady]);
 
   return (
     <div className="lottery-card">
