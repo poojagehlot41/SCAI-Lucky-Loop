@@ -105,11 +105,32 @@ alert(
     } catch (error) {
       console.error(error);
 
-      alert(
-        error.reason ||
-          error.message ||
-          "Transaction failed."
-      );
+    const message =
+  error.reason ||
+  error.message ||
+  "Transaction failed.";
+
+if (message.includes("Ticket sale has ended")) {
+  const contract = await contractService.getContract();
+
+  const endTime = await contract.lotteryEndTime();
+
+  const endDate = new Date(
+    Number(endTime) * 1000
+  ).toLocaleString();
+
+  alert(
+    `⏰ Ticket sale has ended.
+
+Current ticket sale closed at:
+${endDate}
+
+Please wait until the next lottery round opens to buy a new ticket.`
+  );
+} else {
+  alert(message);
+}
+
     } finally {
       setLoading(false);
     }
@@ -144,12 +165,34 @@ alert(
     );
   } catch (error) {
     console.error(error);
+const message =
+  error.reason ||
+  error.message ||
+  "Reward purchase failed.";
 
-    alert(
-      error.reason ||
-      error.message ||
-      "Reward purchase failed."
-    );
+if (message.includes("Ticket sale has ended")) {
+  const contract =
+    await contractService.getContract();
+
+  const endTime =
+    await contract.lotteryEndTime();
+
+  const endDate = new Date(
+    Number(endTime) * 1000
+  ).toLocaleString();
+
+  alert(
+    `⏰ Ticket sale has ended.
+
+Current ticket sale closed at:
+${endDate}
+
+Please wait until the next lottery round opens to use your reward ticket.`
+  );
+} else {
+  alert(message);
+}
+
   } finally {
     setLoading(false);
   }
