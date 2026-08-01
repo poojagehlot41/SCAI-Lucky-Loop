@@ -11,7 +11,7 @@ function Referral() {
     isConnected,
     connectWallet,
     loading,
-    contractReady,
+    contractReady,  
   } = useWalletContext();
 
   const [copied, setCopied] = useState(false);

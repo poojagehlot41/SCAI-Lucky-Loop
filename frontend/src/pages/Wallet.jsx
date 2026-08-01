@@ -94,11 +94,7 @@ function Wallet() {
 
                 <div className="wallet-info">
                   <span>Network</span>
-                 <strong>
-  {network === "unknown"
-    ? "Ethereum Sepolia"
-    : network || "Ethereum Sepolia"}
-</strong>
+<strong>{network || "--"}</strong>
                 </div>
 
                 <div className="wallet-info">

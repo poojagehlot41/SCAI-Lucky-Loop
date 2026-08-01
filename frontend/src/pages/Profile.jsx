@@ -90,11 +90,7 @@ function Profile() {
                   <Globe size={20} />
                   <div>
                     <span>Network</span>
-                   <strong>
-  {network === "unknown"
-    ? "Ethereum Sepolia"
-    : network || "Ethereum Sepolia"}
-</strong>
+                   <strong>{network || "--"}</strong>
                   </div>
                 </div>
 

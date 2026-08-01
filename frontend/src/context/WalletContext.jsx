@@ -65,19 +65,20 @@ export const WalletProvider = ({ children }) => {
         ).toFixed(4)
       );
 
-      const networkInfo = await provider.getNetwork();
+const networkInfo = await provider.getNetwork();
 
 const chainId = Number(networkInfo.chainId);
 
-if (chainId === 11155111) {
-  setNetwork("Sepolia");
-} else if (chainId === 31337) {
-  setNetwork("Hardhat Local");
-} else if (chainId === 1337) {
-  setNetwork("Localhost");
-} else {
-  setNetwork(networkInfo.name);
+let networkName = networkInfo.name;
+
+if (
+  !networkName ||
+  networkName === "unknown"
+) {
+  networkName = `Chain ID: ${chainId}`;
 }
+
+setNetwork(networkName);
 
       const contractInstance =
         await contractService.getContract();
