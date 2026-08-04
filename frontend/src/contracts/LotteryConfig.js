@@ -1,11 +1,11 @@
 const LotteryConfig = {
-  CONTRACT_ADDRESS: "0x076f96d25Cdd6cf9c646dcC0a9986A9eaA2C325E",
+  CONTRACT_ADDRESS: "0x54323Bc0B81ba4E23187D3948A67FcF5B0f1Abb6",
 
-  NETWORK_NAME: "SecureChain Mainnet",
+  NETWORK_NAME: "Ethereum Sepolia",
 
-  CHAIN_ID: 34,
+  CHAIN_ID: 11155111,
 
-  CURRENCY: "SCAI",
+  CURRENCY: "ETH",
 };
 
 export default LotteryConfig;

@@ -380,6 +380,32 @@ const LotteryABI = [
     },
     {
       "inputs": [],
+      "name": "isTicketSaleOpen",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lotteryEndHour",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "lotteryEndTime",
       "outputs": [
         {
@@ -419,6 +445,32 @@ const LotteryABI = [
     },
     {
       "inputs": [],
+      "name": "lotteryResultDelay",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lotteryStartHour",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
       "name": "openLottery",
       "outputs": [],
       "stateMutability": "nonpayable",
@@ -448,6 +500,19 @@ const LotteryABI = [
       "inputs": [
         {
           "internalType": "uint256",
+          "name": "durationInSeconds",
+          "type": "uint256"
+        }
+      ],
+      "name": "setTicketDuration",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
           "name": "newPrice",
           "type": "uint256"
         }
@@ -455,6 +520,19 @@ const LotteryABI = [
       "name": "setTicketPrice",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ticketDuration",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -562,6 +640,6 @@ const LotteryABI = [
       "stateMutability": "payable",
       "type": "receive"
     }
-];
+  ];
 
-export default LotteryABI;
+  export default LotteryABI;

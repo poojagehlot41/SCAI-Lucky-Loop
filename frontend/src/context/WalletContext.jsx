@@ -55,9 +55,13 @@ export const WalletProvider = ({ children }) => {
 
       const provider = new ethers.BrowserProvider(window.ethereum);
 
+      console.log("Initializing wallet...");
+
       const balanceWei = await provider.getBalance(
         wallet.walletAddress
       );
+
+           console.log("Balance:", ethers.formatEther(balanceWei));
 
       setBalance(
         Number(
@@ -66,6 +70,7 @@ export const WalletProvider = ({ children }) => {
       );
 
 const networkInfo = await provider.getNetwork();
+console.log(networkInfo);
 
 const chainId = Number(networkInfo.chainId);
 
