@@ -108,7 +108,9 @@ setNetwork(networkName);
               wallet.walletAddress
             );
 
-          setRewardBalance(reward.toString());
+          setRewardBalance(
+  Number(ethers.formatEther(reward)).toFixed(4)
+);
           setTotalWins(Number(wins));
           setUserTickets(tickets);
         } catch (error) {
