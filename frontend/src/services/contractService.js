@@ -36,6 +36,8 @@ class ContractService {
 
       this.signer = await this.provider.getSigner();
 
+      console.log("Using Contract:", LotteryConfig.CONTRACT_ADDRESS);
+
       this.contract = new ethers.Contract(
         LotteryConfig.CONTRACT_ADDRESS,
         LotteryABI,
