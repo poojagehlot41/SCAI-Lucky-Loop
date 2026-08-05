@@ -19,6 +19,12 @@ contract Lottery {
 
     uint256 public ticketDuration = 1 days;
 
+    uint256 public lotteryStartHour = 9;
+
+uint256 public lotteryEndHour = 21;
+
+uint256 public lotteryResultDelay = 5 minutes;
+
     uint256 public totalTicketsSold;
 
     uint256 public totalPrizeDistributed;
@@ -92,6 +98,21 @@ contract Lottery {
         );
         _;
     }
+
+function isTicketSaleOpen()
+    public
+    view
+    returns (bool)
+{
+    if (!lotteryOpen) {
+        return false;
+    }
+
+    return (
+        block.timestamp >= lotteryEndTime - ticketDuration &&
+        block.timestamp < lotteryEndTime
+    );
+}
 
     constructor() {
 

@@ -5,9 +5,9 @@ module.exports = {
   solidity: "0.8.28",
 
   networks: {
-    scai: {
+    sepolia: {
       url: process.env.RPC_URL,
-      chainId: 34,
+      chainId: 11155111,
       accounts: [process.env.PRIVATE_KEY],
     },
   },
