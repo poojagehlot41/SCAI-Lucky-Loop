@@ -289,26 +289,18 @@ lotteryEndTime = block.timestamp + ticketDuration;
         );
     }
 
-    function selectWinner()
-        external
-        onlyOwner
-    {
-
-        require(
-            lotteryOpen,
-            "Lottery closed"
-        );
-        
-         require(
-    block.timestamp >= lotteryEndTime,
-    "Lottery is still running"
+   function selectWinner()
+    external
+    onlyOwner
+{
+   require(
+    !lotteryOpen,
+    "Close the lottery before selecting winner"
 );
-
-        require(
-            players.length > 0,
-            "No players"
-        );
-
+    require(
+        players.length > 0,
+        "No players"
+    );
         lotteryOpen = false;
 
         uint256 random =
