@@ -40,8 +40,8 @@ A decentralized Web3 Lottery Platform built during the EtherAuthority Internship
 ```
 
 ## 🔗 Live Demo
+ https://scai-lucky-loop.vercel.app/
 
-https://scai-lucky-loop-htvw.vercel.app
 
 ## 🤖 Telegram Web App
 
