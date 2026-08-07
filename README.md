@@ -30,13 +30,13 @@ A decentralized Web3 Lottery Platform built during the EtherAuthority Internship
 ### Lottery Contract
 
 ```
-0x44126f0f6131B6Df7a5Eeb9A64294b7e1990a033
+0xc178E7F2FF451226eB4D5f79111Fc1f508F7b731
 ```
 
 ### SCAI Token
 
 ```
-0xb08E18332d3118c04775639F58FC114Fda5bdB37
+ 0xdE6E1761363561014CB6058928212048395E3148
 ```
 
 ## 🔗 Live Demo
