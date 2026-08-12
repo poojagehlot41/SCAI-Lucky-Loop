@@ -118,7 +118,7 @@ function Referral() {
                 )}
               </>
             )}
-          </div>
+          </div>     
         </div>
       </section>
     </main>
