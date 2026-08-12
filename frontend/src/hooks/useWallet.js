@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import contractService from "../services/contractService";
 
+const SEPOLIA_CHAIN_ID = 11155111;
+
 const useWallet = () => {
   const [walletAddress, setWalletAddress] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -21,11 +23,32 @@ const useWallet = () => {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const networkData = await provider.getNetwork();
 
+      const chainId = Number(networkData.chainId);
+
+      if (chainId !== SEPOLIA_CHAIN_ID) {
+        setWalletAddress(address);
+        setNetwork("Wrong Network");
+        setIsConnected(false);
+        contractService.reset();
+
+        console.warn(
+          `Wrong network. Please switch to Sepolia. Current Chain ID: ${chainId}`
+        );
+
+        return;
+      }
+
       setWalletAddress(address);
-      setNetwork(networkData.name);
+      setNetwork("Sepolia");
       setIsConnected(true);
     } catch (error) {
-      console.error(error);
+      console.error("Wallet state update failed:", error);
+
+      setWalletAddress("");
+      setNetwork("");
+      setIsConnected(false);
+
+      contractService.reset();
     }
   };
 
@@ -41,12 +64,13 @@ const useWallet = () => {
         await updateWalletState(accounts[0]);
       } else {
         contractService.reset();
+
         setWalletAddress("");
         setNetwork("");
         setIsConnected(false);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Wallet loading failed:", error);
     }
   };
 
@@ -67,7 +91,23 @@ const useWallet = () => {
       );
 
       if (!accounts.length) {
-        setLoading(false);
+        return false;
+      }
+
+      const networkData = await provider.getNetwork();
+      const chainId = Number(networkData.chainId);
+
+      if (chainId !== SEPOLIA_CHAIN_ID) {
+        contractService.reset();
+
+        setWalletAddress(accounts[0]);
+        setNetwork("Wrong Network");
+        setIsConnected(false);
+
+        alert(
+          "Please switch MetaMask to the Sepolia Test Network."
+        );
+
         return false;
       }
 
@@ -77,7 +117,7 @@ const useWallet = () => {
 
       return true;
     } catch (error) {
-      console.error(error);
+      console.error("Wallet connection failed:", error);
 
       contractService.reset();
 
