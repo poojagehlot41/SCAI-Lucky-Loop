@@ -71,9 +71,9 @@
 .referral-link input {
   flex: 1;
   padding: 14px 16px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
   outline: none;
   font-size: 0.95rem;
@@ -101,17 +101,20 @@
   transform: translateY(-2px);
 }
 
+/* Referral stats - all 3 in one row */
 .referral-stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+  width: 100%;
 }
 
 .stat-card {
-  padding: 25px;
+  min-width: 0;
+  padding: 25px 18px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
 }
 
@@ -137,6 +140,19 @@
   margin-top: 15px;
 }
 
+/* Tablet */
+@media (max-width: 900px) {
+  .referral-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 20px 12px;
+  }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
   .referral-page {
     padding: 40px 15px;
@@ -160,5 +176,6 @@
 
   .referral-stats {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
 }
