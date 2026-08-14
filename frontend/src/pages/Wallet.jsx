@@ -1,7 +1,12 @@
-import { Wallet as WalletIcon, Copy, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import {
+  Wallet as WalletIcon,
+  Copy,
+  CheckCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useWalletContext } from "../context/WalletContext";
+import contractService from "../services/contractService";
 
 import "../styles/wallet.css";
 
@@ -21,46 +26,69 @@ function Wallet() {
   } = useWalletContext();
 
   const [copied, setCopied] = useState(false);
+  const [resultTime, setResultTime] = useState("--");
 
-  const now = new Date();
+  const previousWeekTickets = userTickets.filter(
+    (ticket) =>
+      Date.now() - Number(ticket.timestamp) * 1000 <=
+      7 * 24 * 60 * 60 * 1000
+  );
 
-  // Today's tickets only
-  const todayTickets = userTickets.filter((ticket) => {
-    const ticketDate = new Date(Number(ticket.timestamp) * 1000);
+  useEffect(() => {
+    const loadResultTime = async () => {
+      try {
+        if (!isConnected || !contractReady) {
+          setResultTime("--");
+          return;
+        }
 
-    return (
-      ticketDate.getFullYear() === now.getFullYear() &&
-      ticketDate.getMonth() === now.getMonth() &&
-      ticketDate.getDate() === now.getDate()
-    );
-  });
+        const contract = await contractService.getContract();
 
-  // Previous tickets = older than today, within last 7 days
-  const previousWeekTickets = userTickets.filter((ticket) => {
-    const ticketDate = new Date(Number(ticket.timestamp) * 1000);
+        if (!contract) {
+          setResultTime("--");
+          return;
+        }
 
-    const difference =
-      now.getTime() - ticketDate.getTime();
+        const lotteryEndTime =
+          await contract.lotteryEndTime();
 
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        const resultDelay =
+          await contract.lotteryResultDelay();
 
-    const isOlderThanToday =
-      ticketDate.getFullYear() !== now.getFullYear() ||
-      ticketDate.getMonth() !== now.getMonth() ||
-      ticketDate.getDate() !== now.getDate();
+        const expectedResultTimestamp =
+          (Number(lotteryEndTime) +
+            Number(resultDelay)) *
+          1000;
 
-    return (
-      isOlderThanToday &&
-      difference >= 0 &&
-      difference <= sevenDays
-    );
-  });
+        setResultTime(
+          new Date(
+            expectedResultTimestamp
+          ).toLocaleString()
+        );
+      } catch (error) {
+        console.error(
+          "Result time loading failed:",
+          error
+        );
+
+        setResultTime("--");
+      }
+    };
+
+    loadResultTime();
+  }, [
+    isConnected,
+    contractReady,
+  ]);
 
   const copyAddress = async () => {
     if (!walletAddress) return;
 
     try {
-      await navigator.clipboard.writeText(walletAddress);
+      await navigator.clipboard.writeText(
+        walletAddress
+      );
+
       setCopied(true);
 
       setTimeout(() => {
@@ -71,42 +99,12 @@ function Wallet() {
     }
   };
 
-  const renderTicket = (ticket, index) => (
-    <div
-      key={`${ticket.ticketNumber?.toString()}-${ticket.timestamp?.toString()}-${index}`}
-      className="ticket-card"
-    >
-      <p>
-        <strong>Ticket #</strong>{" "}
-        {ticket.ticketNumber.toString()}
-      </p>
-
-      <p>
-        <strong>Lottery ID</strong>{" "}
-        {ticket.lotteryId.toString()}
-      </p>
-
-      <p>
-        <strong>Purchased</strong>{" "}
-        {new Date(
-          Number(ticket.timestamp) * 1000
-        ).toLocaleString()}
-      </p>
-
-      <p>
-        <strong>Status</strong>{" "}
-        {ticket.winner
-          ? "🏆 Winner"
-          : "❌ Not Winner"}
-      </p>
-    </div>
-  );
-
   return (
     <main className="wallet-page">
       <section className="wallet-hero">
         <div className="container">
           <div className="wallet-card">
+
             <div className="wallet-icon">
               <WalletIcon size={42} />
             </div>
@@ -114,8 +112,9 @@ function Wallet() {
             <h1>Wallet Dashboard</h1>
 
             <p>
-              Connect your wallet to access SCAI Lucky Loop and interact with
-              the lottery smart contract.
+              Connect your wallet to access SCAI
+              Lucky Loop and interact with the
+              lottery smart contract.
             </p>
 
             {!isConnected ? (
@@ -155,22 +154,30 @@ function Wallet() {
 
                 <div className="wallet-info">
                   <span>Network</span>
-                  <strong>{network || "--"}</strong>
+                  <strong>
+                    {network || "--"}
+                  </strong>
                 </div>
 
                 <div className="wallet-info">
                   <span>Balance</span>
-                  <strong>{balance} ETH</strong>
+                  <strong>
+                    {balance} ETH
+                  </strong>
                 </div>
 
                 <div className="wallet-info">
                   <span>Reward Balance</span>
-                  <strong>{rewardBalance} SCAI</strong>
+                  <strong>
+                    {rewardBalance} SCAI
+                  </strong>
                 </div>
 
                 <div className="wallet-info">
                   <span>Total Wins</span>
-                  <strong>{totalWins}</strong>
+                  <strong>
+                    {totalWins}
+                  </strong>
                 </div>
 
                 <div className="wallet-info">
@@ -190,13 +197,24 @@ function Wallet() {
                 </div>
 
                 <div className="wallet-info">
+                  <span>Expected Result Time</span>
+
+                  <strong>
+                    {resultTime}
+                  </strong>
+                </div>
+
+                <div className="wallet-info">
                   <span>How Rewards Work</span>
 
                   <p>
-                    Winners automatically receive SCAI reward credits after the
-                    lottery winner is selected. These rewards can be used to
-                    purchase future lottery tickets, if reward-based ticket
-                    purchases are enabled.
+                    Winners automatically receive
+                    SCAI reward credits after the
+                    lottery winner is selected.
+                    These rewards can be used to
+                    purchase future lottery tickets,
+                    if reward-based ticket purchases
+                    are enabled.
                   </p>
                 </div>
 
@@ -227,36 +245,138 @@ function Wallet() {
                 {!contractReady && (
                   <div className="wallet-warning">
                     <p>
-                      ⚠️ Unable to connect to the smart contract. Please check
-                      your wallet network and try again.
+                      ⚠️ Unable to connect to the
+                      smart contract. Please check
+                      your wallet network and try
+                      again.
                     </p>
                   </div>
                 )}
 
-                {/* TODAY'S TICKETS */}
                 <div className="wallet-info">
                   <span>My Tickets</span>
 
-                  {todayTickets.length === 0 ? (
-                    <p>No tickets purchased today.</p>
+                  {userTickets.length === 0 ? (
+                    <p>
+                      No tickets purchased yet.
+                    </p>
                   ) : (
                     <div className="ticket-history">
-                      {todayTickets.map(renderTicket)}
+                      {userTickets.map(
+                        (ticket, index) => (
+                          <div
+                            key={index}
+                            className="ticket-card"
+                          >
+                            <p>
+                              <strong>
+                                Ticket #
+                              </strong>{" "}
+                              {ticket.ticketNumber.toString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Lottery ID
+                              </strong>{" "}
+                              {ticket.lotteryId.toString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Purchased
+                              </strong>{" "}
+                              {new Date(
+                                Number(
+                                  ticket.timestamp
+                                ) * 1000
+                              ).toLocaleString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Today Purchase
+                              </strong>{" "}
+                              {new Date(
+                                Number(
+                                  ticket.timestamp
+                                ) * 1000
+                              ).toDateString() ===
+                              new Date().toDateString()
+                                ? "Yes"
+                                : "No"}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Status
+                              </strong>{" "}
+                              {ticket.winner
+                                ? "🏆 Winner"
+                                : "❌ Not Winner"}
+                            </p>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* PREVIOUS 7 DAYS */}
                 <div className="wallet-info">
-                  <span>Previous Week History</span>
+                  <span>
+                    Previous Week History
+                  </span>
 
-                  {previousWeekTickets.length === 0 ? (
+                  {previousWeekTickets.length ===
+                  0 ? (
                     <p>
-                      No previous ticket history from the last 7 days.
+                      No ticket history from last
+                      7 days.
                     </p>
                   ) : (
                     <div className="ticket-history">
-                      {previousWeekTickets.map(renderTicket)}
+                      {previousWeekTickets.map(
+                        (ticket, index) => (
+                          <div
+                            key={index}
+                            className="ticket-card"
+                          >
+                            <p>
+                              <strong>
+                                Ticket #
+                              </strong>{" "}
+                              {ticket.ticketNumber.toString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Lottery ID
+                              </strong>{" "}
+                              {ticket.lotteryId.toString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Purchased
+                              </strong>{" "}
+                              {new Date(
+                                Number(
+                                  ticket.timestamp
+                                ) * 1000
+                              ).toLocaleString()}
+                            </p>
+
+                            <p>
+                              <strong>
+                                Status
+                              </strong>{" "}
+                              {ticket.winner
+                                ? "🏆 Winner"
+                                : "❌ Not Winner"}
+                            </p>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
