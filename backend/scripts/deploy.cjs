@@ -1,28 +1,29 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("\n🚀 Deploying SCAI Lucky Loop Contracts...\n");
+  console.log("\n🚀 Deploying updated SCAI Lucky Loop Lottery...\n");
 
-  // Deploy SCAI Token
-  const ScaiToken = await hre.ethers.getContractFactory("ScaiToken");
-  const token = await ScaiToken.deploy();
-  await token.waitForDeployment();
+  const SCAI_TOKEN =
+    "0xC6831944F79B197C54465509B2dE5BB66F65adA5";
 
-  console.log("✅ SCAI Token Deployed");
-  console.log("Token Address:", await token.getAddress());
+  console.log("SCAI Token:", SCAI_TOKEN);
 
-  console.log("--------------------------------");
+  const Lottery =
+    await hre.ethers.getContractFactory("Lottery");
 
-  // Deploy Lottery
-  const Lottery = await hre.ethers.getContractFactory("Lottery");
-  const lottery = await Lottery.deploy();
+  const lottery =
+    await Lottery.deploy(SCAI_TOKEN);
+
   await lottery.waitForDeployment();
 
-  console.log("✅ Lottery Contract Deployed");
-  console.log("Lottery Address:", await lottery.getAddress());
+  const lotteryAddress =
+    await lottery.getAddress();
+
+  console.log("✅ Updated Lottery Contract Deployed");
+  console.log("Lottery Address:", lotteryAddress);
 
   console.log("--------------------------------");
-  console.log("🎉 Deployment Completed Successfully");
+  console.log("🎉 Lottery Deployment Completed Successfully");
 }
 
 main().catch((error) => {
