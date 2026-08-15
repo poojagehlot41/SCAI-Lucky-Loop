@@ -54,7 +54,7 @@ const HowItWorks = () => {
           </p>
         </div>
 
-        <div className="features-grid">
+        <div className="how-it-works-grid">
           {steps.map((step, index) => (
             <div className="feature-card" key={index}>
               <div className="feature-icon">{step.icon}</div>
