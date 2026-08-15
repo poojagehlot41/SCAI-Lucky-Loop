@@ -51,6 +51,60 @@
   margin-bottom: 35px;
 }
 
+/* =========================
+   ADMIN LOGIN FORM
+========================= */
+
+.admin-card form {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.admin-password-input {
+  width: 100%;
+  height: 54px;
+  padding: 0 18px;
+  box-sizing: border-box;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+
+  font-size: 1rem;
+  font-family: inherit;
+
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.admin-password-input::placeholder {
+  color: #8f9bb3;
+}
+
+.admin-password-input:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.admin-password-input:focus {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.admin-password-error {
+  color: #f87171 !important;
+  font-size: 0.9rem;
+  margin: 10px 0 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
 .admin-actions {
   display: flex;
   flex-direction: column;
@@ -80,6 +134,7 @@
 
 .primary-btn:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.25);
 }
 
 .secondary-btn {
@@ -97,6 +152,82 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* =========================
+   ADMIN GUIDE
+========================= */
+
+.admin-guide {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guide-item {
+  margin-top: 1rem;
+}
+
+.guide-item strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.guide-item p {
+  opacity: 0.85;
+  line-height: 1.6;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.admin-status {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.status-card {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+
+.status-card span {
+  display: block !important;
+  color: #9ca3af;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.status-card strong {
+  display: block !important;
+  color: #22c55e;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  margin-left: 18px;
+}
+
+.status-live {
+  color: #22c55e;
+}
+
+.status-pending {
+  color: #f59e0b;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 768px) {
   .admin-page {
@@ -116,72 +247,29 @@
     height: 75px;
   }
 
+  .admin-card form {
+    max-width: 100%;
+  }
+
+  .admin-password-input {
+    height: 50px;
+    font-size: 0.95rem;
+  }
+
   .primary-btn,
   .secondary-btn {
     height: 50px;
     font-size: 0.95rem;
   }
-}
 
-.admin-guide{
-    margin-top:2rem;
-    padding:1.5rem;
-    border-radius:18px;
-    background:rgba(255,255,255,.04);
-}
+  .status-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
 
-.guide-item{
-    margin-top:1rem;
-}
-
-.guide-item strong{
-    display:block;
-    margin-bottom:.35rem;
-}
-
-.guide-item p{
-    opacity:.85;
-    line-height:1.6;
-}
-
-.admin-status{
-    margin-top:28px;
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-}
-
-.status-card{
-    width:100%;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:14px 18px;
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:12px;
-}
-
-.status-card span{
-    display:block !important;
-    color:#9ca3af;
-    font-size:15px;
-    font-weight:500;
-}
-
-.status-card strong{
-    display:block !important;
-    color:#22c55e;
-    font-size:15px;
-    font-weight:700;
-    text-align:right;
-    margin-left:18px;
-}
-
-.status-live{
-    color:#22c55e;
-}
-
-.status-pending{
-    color:#f59e0b;
+  .status-card strong {
+    margin-left: 0;
+    text-align: left;
+  }
 }
