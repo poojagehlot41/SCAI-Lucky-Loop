@@ -4,14 +4,17 @@ import {
   Trophy,
   Play,
   Square,
-  AlertTriangle,
   Lock,
+  LogIn,
 } from "lucide-react";
 
 import { useWalletContext } from "../context/WalletContext";
 import contractService from "../services/contractService";
 
 import "../styles/admin.css";
+
+// Change this password if you want a different admin password.
+const ADMIN_PASSWORD = "SCAIAdmin@2026";
 
 function Admin() {
   const {
@@ -22,7 +25,22 @@ function Admin() {
     contractReady,
   } = useWalletContext();
 
+  const [password, setPassword] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const [processing, setProcessing] = useState(false);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+
+    if (password === ADMIN_PASSWORD) {
+      setAuthenticated(true);
+      setPasswordError("");
+      setPassword("");
+    } else {
+      setPasswordError("Incorrect admin password.");
+    }
+  };
 
   const handlePickWinner = async () => {
     try {
@@ -32,19 +50,16 @@ function Admin() {
         await contractService.getContract();
 
       if (!contract) {
-        throw new Error(
-          "Contract unavailable."
-        );
+        throw new Error("Contract unavailable.");
       }
 
-      const tx =
-        await contract.selectWinner();
+      // Winner is selected randomly by the smart contract.
+      // Admin does NOT choose the winner manually.
+      const tx = await contract.selectWinner();
 
       await tx.wait();
 
-      alert(
-        "🎉 Winner selected successfully."
-      );
+      alert("🎉 Winner selected randomly and successfully.");
     } catch (error) {
       console.error(error);
 
@@ -52,7 +67,7 @@ function Admin() {
         error.reason ||
           error.shortMessage ||
           error.message ||
-          "Failed to select winner."
+          "Winner selection failed."
       );
     } finally {
       setProcessing(false);
@@ -66,14 +81,16 @@ function Admin() {
       const contract =
         await contractService.getContract();
 
+      if (!contract) {
+        throw new Error("Contract unavailable.");
+      }
+
       const tx =
         await contract.openLottery();
 
       await tx.wait();
 
-      alert(
-        "Lottery opened successfully."
-      );
+      alert("Lottery opened successfully.");
     } catch (error) {
       console.error(error);
 
@@ -95,14 +112,16 @@ function Admin() {
       const contract =
         await contractService.getContract();
 
+      if (!contract) {
+        throw new Error("Contract unavailable.");
+      }
+
       const tx =
         await contract.closeLottery();
 
       await tx.wait();
 
-      alert(
-        "Lottery closed successfully."
-      );
+      alert("Lottery closed successfully.");
     } catch (error) {
       console.error(error);
 
@@ -117,7 +136,11 @@ function Admin() {
     }
   };
 
-  if (!isConnected) {
+  // -------------------------
+  // PASSWORD LOGIN
+  // -------------------------
+
+  if (!authenticated) {
     return (
       <main className="admin-page">
         <section className="admin-section">
@@ -128,24 +151,39 @@ function Admin() {
                 <Lock size={45} />
               </div>
 
-              <h1>
-                Admin Login Required
-              </h1>
+              <h1>Admin Login</h1>
 
               <p>
-                Connect your wallet to access
-                the administrator dashboard.
+                Enter the administrator password
+                to access the dashboard.
               </p>
 
-              <button
-                className="primary-btn"
-                onClick={connectWallet}
-                disabled={loading}
-              >
-                {loading
-                  ? "Connecting..."
-                  : "Connect Wallet"}
-              </button>
+              <form onSubmit={handleLogin}>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError("");
+                  }}
+                  placeholder="Enter admin password"
+                  className="admin-password-input"
+                />
+
+                {passwordError && (
+                  <p className="admin-password-error">
+                    {passwordError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="primary-btn"
+                >
+                  <LogIn size={18} />
+                  Login
+                </button>
+              </form>
 
             </div>
           </div>
@@ -153,6 +191,10 @@ function Admin() {
       </main>
     );
   }
+
+  // -------------------------
+  // ADMIN DASHBOARD
+  // -------------------------
 
   return (
     <main className="admin-page">
@@ -164,60 +206,31 @@ function Admin() {
               <ShieldCheck size={42} />
             </div>
 
-            <h1>
-              Admin Dashboard
-            </h1>
+            <h1>Admin Dashboard</h1>
 
             <p>
               Manage SCAI Lucky Loop lottery
               rounds and administrator operations.
             </p>
 
-            {!contractReady && (
-              <div className="admin-warning">
-
-                <AlertTriangle size={22} />
-
-                <div>
-
-                  <strong>
-                    Smart Contract Not Ready
-                  </strong>
-
-                  <p>
-                    Deploy the contract before
-                    performing admin actions.
-                  </p>
-
-                </div>
-
-              </div>
-            )}
-
             <div className="admin-actions">
 
               <button
                 className="primary-btn"
                 onClick={handlePickWinner}
-                disabled={
-                  processing ||
-                  !contractReady
-                }
+                disabled={processing}
               >
                 <Trophy size={18} />
 
                 {processing
                   ? "Processing..."
-                  : "Run Winner Selection"}
+                  : "Select Random Winner"}
               </button>
 
               <button
                 className="secondary-btn"
                 onClick={handleOpenLottery}
-                disabled={
-                  processing ||
-                  !contractReady
-                }
+                disabled={processing}
               >
                 <Play size={18} />
 
@@ -227,10 +240,7 @@ function Admin() {
               <button
                 className="secondary-btn"
                 onClick={handleCloseLottery}
-                disabled={
-                  processing ||
-                  !contractReady
-                }
+                disabled={processing}
               >
                 <Square size={18} />
 
@@ -243,87 +253,65 @@ function Admin() {
 
               <div className="admin-guide">
 
-                <h2>
-                  Admin Controls
-                </h2>
+                <h2>Admin Controls</h2>
 
                 <div className="guide-item">
-
                   <strong>
-                    Run Winner Selection
+                    Random Winner Selection
                   </strong>
 
                   <p>
-                    After the configured lottery
-                    period and result delay, the
-                    winner can be selected from
-                    the purchased tickets.
+                    The smart contract randomly
+                    selects the winner. The admin
+                    cannot manually choose a winner.
                   </p>
-
                 </div>
 
                 <div className="guide-item">
-
                   <strong>
                     Open Lottery
                   </strong>
 
                   <p>
                     Starts a new lottery round.
-                    This action requires the
-                    contract owner.
                   </p>
-
                 </div>
 
                 <div className="guide-item">
-
                   <strong>
                     Close Lottery
                   </strong>
 
                   <p>
-                    Stops further ticket purchases
-                    and prepares the round for
-                    winner selection. This action
-                    requires the contract owner.
+                    Stops ticket purchases for
+                    the current lottery round.
                   </p>
-
                 </div>
 
                 <div className="guide-item">
-
                   <strong>
-                    Transparency
+                    Winner Reward
                   </strong>
 
                   <p>
-                    Lottery actions are executed
-                    through the deployed smart
-                    contract.
+                    The winner receives a reward
+                    balance and can claim the
+                    SCAI tokens to their wallet.
                   </p>
-
                 </div>
 
               </div>
 
               <div className="status-card">
-
-                <span>
-                  Wallet
-                </span>
+                <span>Admin Access</span>
 
                 <strong className="status-live">
-                  Connected
+                  Authorized
                 </strong>
-
               </div>
 
               <div className="status-card">
-
-                <span>
-                  Contract
-                </span>
+                <span>Contract</span>
 
                 <strong
                   className={
@@ -336,26 +324,19 @@ function Admin() {
                     ? "Active"
                     : "Pending"}
                 </strong>
-
               </div>
 
               <div className="status-card">
-
-                <span>
-                  Connected Address
-                </span>
+                <span>Connected Wallet</span>
 
                 <strong>
-                  {walletAddress
+                  {isConnected && walletAddress
                     ? `${walletAddress.slice(
                         0,
                         8
-                      )}...${walletAddress.slice(
-                        -6
-                      )}`
-                    : "--"}
+                      )}...${walletAddress.slice(-6)}`
+                    : "Required for transaction"}
                 </strong>
-
               </div>
 
             </div>
