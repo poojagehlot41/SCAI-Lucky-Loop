@@ -45,18 +45,18 @@
   margin-bottom: 15px;
 }
 
-.wallet-card p {
+.wallet-card > p {
   color: #b6bfd3;
   line-height: 1.7;
-  margin-bottom: 35px;
+  margin-bottom: 30px;
 }
 
 .wallet-info {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  padding: 18px 20px;
-  margin-bottom: 18px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
   text-align: left;
 }
 
@@ -64,7 +64,7 @@
   display: block;
   font-size: 0.9rem;
   color: #94a3b8;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .wallet-info strong {
@@ -103,11 +103,48 @@
 .primary-btn,
 .secondary-btn {
   width: 100%;
-  margin-top: 15px;
+  margin-top: 12px;
 }
 
 .status-live {
   color: #22c55e;
+}
+
+.status-pending {
+  color: #f59e0b;
+}
+
+/* Ticket history spacing */
+.ticket-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ticket-card {
+  padding: 12px 14px;
+  margin: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ticket-card p {
+  margin: 4px 0;
+  line-height: 1.45;
+}
+
+.ticket-card p:last-child {
+  margin-bottom: 0;
+}
+
+.wallet-warning {
+  margin-bottom: 10px;
+}
+
+.wallet-warning p {
+  margin-bottom: 0;
 }
 
 @media (max-width: 768px) {
@@ -130,5 +167,18 @@
 
   .copy-btn {
     width: 100%;
+  }
+
+  .wallet-info {
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+
+  .ticket-history {
+    gap: 6px;
+  }
+
+  .ticket-card {
+    padding: 10px 12px;
   }
 }
