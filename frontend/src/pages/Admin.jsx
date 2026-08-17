@@ -6,10 +6,12 @@ import {
   Square,
   Lock,
   LogIn,
+  ExternalLink,
 } from "lucide-react";
 
 import { useWalletContext } from "../context/WalletContext";
 import contractService from "../services/contractService";
+import LotteryConfig from "../contracts/LotteryConfig";
 
 import "../styles/admin.css";
 
@@ -20,8 +22,6 @@ function Admin() {
   const {
     walletAddress,
     isConnected,
-    connectWallet,
-    loading,
     contractReady,
   } = useWalletContext();
 
@@ -29,6 +29,17 @@ function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [processing, setProcessing] = useState(false);
+
+  const contractAddress =
+    LotteryConfig.CONTRACT_ADDRESS || "";
+
+  const contractUrl = contractAddress
+    ? `https://sepolia.etherscan.io/address/${contractAddress}`
+    : "";
+
+  const shortContractAddress = contractAddress
+    ? `${contractAddress.slice(0, 8)}...${contractAddress.slice(-6)}`
+    : "Not available";
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -53,13 +64,13 @@ function Admin() {
         throw new Error("Contract unavailable.");
       }
 
-      // Winner is selected randomly by the smart contract.
-      // Admin does NOT choose the winner manually.
       const tx = await contract.selectWinner();
 
       await tx.wait();
 
-      alert("🎉 Winner selected randomly and successfully.");
+      alert(
+        "🎉 Winner selected randomly and successfully."
+      );
     } catch (error) {
       console.error(error);
 
@@ -308,6 +319,35 @@ function Admin() {
                 <strong className="status-live">
                   Authorized
                 </strong>
+              </div>
+
+              {/* CONTRACT ADDRESS */}
+              <div className="status-card">
+                <span>Contract Address</span>
+
+                {contractAddress ? (
+                  <a
+                    href={contractUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      color: "#38bdf8",
+                      textDecoration: "none",
+                      fontWeight: "600",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {shortContractAddress}
+                    <ExternalLink size={16} />
+                  </a>
+                ) : (
+                  <strong className="status-pending">
+                    Not available
+                  </strong>
+                )}
               </div>
 
               <div className="status-card">
