@@ -21,7 +21,7 @@ export const WalletProvider = ({ children }) => {
   const [contractReady, setContractReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
-  const [rewardBalance, setRewardBalance] = useState("0");
+  const [rewardBalance, setRewardBalance] = useState("0.0000");
   const [totalWins, setTotalWins] = useState(0);
   const [userTickets, setUserTickets] = useState([]);
 
@@ -32,7 +32,7 @@ export const WalletProvider = ({ children }) => {
     setContract(null);
     setContractReady(false);
 
-    setRewardBalance("0");
+    setRewardBalance("0.0000");
     setTotalWins(0);
     setUserTickets([]);
 
@@ -55,7 +55,9 @@ export const WalletProvider = ({ children }) => {
     setInitializing(true);
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(
+        window.ethereum
+      );
 
       console.log("Initializing wallet...");
       console.log("Wallet:", wallet.walletAddress);
@@ -101,7 +103,7 @@ export const WalletProvider = ({ children }) => {
         setContract(null);
         setContractReady(false);
 
-        setRewardBalance("0");
+        setRewardBalance("0.0000");
         setTotalWins(0);
         setUserTickets([]);
 
@@ -113,23 +115,29 @@ export const WalletProvider = ({ children }) => {
         contractInstance.target
       );
 
-      // IMPORTANT:
-      // Set contract ready immediately after successful
-      // contract initialization.
       setContract(contractInstance);
       setContractReady(true);
 
-      // Read contract data independently.
+      // --------------------------------------------------
+      // REWARD BALANCE
+      // Use the same source as Referral page
+      // --------------------------------------------------
       try {
-        const reward =
-          await contractInstance.getRewardBalance(
+        const rewards =
+          await contractInstance.getReferralRewards(
             wallet.walletAddress
           );
 
-        setRewardBalance(
-          Number(
-            ethers.formatEther(reward)
-          ).toFixed(4)
+        const formattedRewards = Number(
+          ethers.formatEther(rewards)
+        ).toFixed(4);
+
+        setRewardBalance(formattedRewards);
+
+        console.log(
+          "Reward Balance:",
+          formattedRewards,
+          "ETH"
         );
       } catch (error) {
         console.error(
@@ -137,9 +145,10 @@ export const WalletProvider = ({ children }) => {
           error
         );
 
-        setRewardBalance("0");
+        setRewardBalance("0.0000");
       }
 
+      // Total wins
       try {
         const wins =
           await contractInstance.getTotalWins(
@@ -156,6 +165,7 @@ export const WalletProvider = ({ children }) => {
         setTotalWins(0);
       }
 
+      // User tickets
       try {
         const tickets =
           await contractInstance.getUserTickets(
@@ -171,19 +181,16 @@ export const WalletProvider = ({ children }) => {
 
         setUserTickets([]);
       }
-
     } catch (error) {
       console.error(
         "Wallet/contract initialization failed:",
         error
       );
 
-      // Do NOT destroy the contract state unless
-      // the actual contract initialization failed.
       setContract(null);
       setContractReady(false);
 
-      setRewardBalance("0");
+      setRewardBalance("0.0000");
       setTotalWins(0);
       setUserTickets([]);
     } finally {
@@ -195,7 +202,7 @@ export const WalletProvider = ({ children }) => {
     resetWalletData,
   ]);
 
-  // Initialize after wallet state is actually updated.
+  // Initialize after wallet state is updated
   useEffect(() => {
     initialize();
   }, [initialize]);
@@ -212,15 +219,12 @@ export const WalletProvider = ({ children }) => {
         return;
       }
 
-      // useWallet will update its own state,
-      // then initialize() will run from the state change.
       setInitializing(true);
     };
 
     const handleChainChanged = async () => {
       contractService.reset();
 
-      // Give MetaMask time to finish switching network.
       setTimeout(() => {
         initialize();
       }, 300);
@@ -249,10 +253,6 @@ export const WalletProvider = ({ children }) => {
     };
   }, [initialize, resetWalletData]);
 
-  // IMPORTANT:
-  // Do NOT call initialize() immediately after
-  // wallet.connectWallet().
-  // React state needs to update first.
   const connectWallet = async () => {
     const connected =
       await wallet.connectWallet();
