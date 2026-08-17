@@ -4,6 +4,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ethers } from "ethers";
 
 import { useWalletContext } from "../context/WalletContext";
 import contractService from "../services/contractService";
@@ -27,12 +28,40 @@ function Wallet() {
 
   const [copied, setCopied] = useState(false);
   const [resultTime, setResultTime] = useState("--");
+  const [walletReward, setWalletReward] = useState("0");
 
-  const previousWeekTickets = userTickets.filter(
-    (ticket) =>
-      Date.now() - Number(ticket.timestamp) * 1000 <=
-      7 * 24 * 60 * 60 * 1000
-  );
+  // Today's tickets only
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+  // Previous 7 days, excluding today
+  const sevenDaysAgo = new Date(todayStart);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const todayTickets = userTickets.filter((ticket) => {
+    const ticketDate = new Date(
+      Number(ticket.timestamp) * 1000
+    );
+
+    return (
+      ticketDate >= todayStart &&
+      ticketDate < tomorrowStart
+    );
+  });
+
+  const previousWeekTickets = userTickets.filter((ticket) => {
+    const ticketDate = new Date(
+      Number(ticket.timestamp) * 1000
+    );
+
+    return (
+      ticketDate >= sevenDaysAgo &&
+      ticketDate < todayStart
+    );
+  });
 
   useEffect(() => {
     const loadResultTime = async () => {
@@ -42,7 +71,8 @@ function Wallet() {
           return;
         }
 
-        const contract = await contractService.getContract();
+        const contract =
+          await contractService.getContract();
 
         if (!contract) {
           setResultTime("--");
@@ -76,9 +106,54 @@ function Wallet() {
     };
 
     loadResultTime();
+  }, [isConnected, contractReady]);
+
+  // Load the same referral reward shown on the Referral page
+  useEffect(() => {
+    const loadWalletReward = async () => {
+      try {
+        if (
+          !isConnected ||
+          !contractReady ||
+          !walletAddress
+        ) {
+          setWalletReward("0");
+          return;
+        }
+
+        const contract =
+          await contractService.getContract();
+
+        if (!contract) {
+          setWalletReward("0");
+          return;
+        }
+
+        const rewards =
+          await contract.getReferralRewards(
+            walletAddress
+          );
+
+        setWalletReward(
+          Number(
+            ethers.formatEther(rewards)
+          ).toFixed(4)
+        );
+      } catch (error) {
+        console.error(
+          "Wallet reward loading failed:",
+          error
+        );
+
+        setWalletReward("0");
+      }
+    };
+
+    loadWalletReward();
   }, [
     isConnected,
     contractReady,
+    walletAddress,
   ]);
 
   const copyAddress = async () => {
@@ -99,6 +174,47 @@ function Wallet() {
     }
   };
 
+  const renderTicket = (
+    ticket,
+    index,
+    showTodayPurchase = false
+  ) => (
+    <div
+      key={`${ticket.ticketNumber}-${ticket.lotteryId}-${index}`}
+      className="ticket-card"
+    >
+      <p>
+        <strong>Ticket #</strong>{" "}
+        {ticket.ticketNumber.toString()}
+      </p>
+
+      <p>
+        <strong>Lottery ID</strong>{" "}
+        {ticket.lotteryId.toString()}
+      </p>
+
+      <p>
+        <strong>Purchased</strong>{" "}
+        {new Date(
+          Number(ticket.timestamp) * 1000
+        ).toLocaleString()}
+      </p>
+
+      {showTodayPurchase && (
+        <p>
+          <strong>Today Purchase</strong> Yes
+        </p>
+      )}
+
+      <p>
+        <strong>Status</strong>{" "}
+        {ticket.winner
+          ? "🏆 Winner"
+          : "❌ Not Winner"}
+      </p>
+    </div>
+  );
+
   return (
     <main className="wallet-page">
       <section className="wallet-hero">
@@ -112,9 +228,8 @@ function Wallet() {
             <h1>Wallet Dashboard</h1>
 
             <p>
-              Connect your wallet to access SCAI
-              Lucky Loop and interact with the
-              lottery smart contract.
+              Connect your wallet to access SCAI Lucky Loop
+              and interact with the lottery smart contract.
             </p>
 
             {!isConnected ? (
@@ -129,6 +244,7 @@ function Wallet() {
               </button>
             ) : (
               <>
+
                 <div className="wallet-info">
                   <span>Wallet Address</span>
 
@@ -168,13 +284,15 @@ function Wallet() {
 
                 <div className="wallet-info">
                   <span>Reward Balance</span>
+
                   <strong>
-                    {rewardBalance} SCAI
+                    {walletReward} ETH
                   </strong>
                 </div>
 
                 <div className="wallet-info">
                   <span>Total Wins</span>
+
                   <strong>
                     {totalWins}
                   </strong>
@@ -185,13 +303,13 @@ function Wallet() {
 
                   <strong
                     className={
-                      Number(rewardBalance) > 0
+                      Number(walletReward) > 0
                         ? "status-live"
                         : "status-pending"
                     }
                   >
-                    {Number(rewardBalance) > 0
-                      ? "Reward Credited"
+                    {Number(walletReward) > 0
+                      ? "Reward Earned"
                       : "No Reward Yet"}
                   </strong>
                 </div>
@@ -208,13 +326,9 @@ function Wallet() {
                   <span>How Rewards Work</span>
 
                   <p>
-                    Winners automatically receive
-                    SCAI reward credits after the
-                    lottery winner is selected.
-                    These rewards can be used to
-                    purchase future lottery tickets,
-                    if reward-based ticket purchases
-                    are enabled.
+                    Referral rewards are recorded on-chain
+                    and displayed in your wallet dashboard
+                    after they are earned.
                   </p>
                 </div>
 
@@ -245,137 +359,56 @@ function Wallet() {
                 {!contractReady && (
                   <div className="wallet-warning">
                     <p>
-                      ⚠️ Unable to connect to the
-                      smart contract. Please check
-                      your wallet network and try
-                      again.
+                      ⚠️ Unable to connect to the smart
+                      contract. Please check your wallet
+                      network and try again.
                     </p>
                   </div>
                 )}
 
+                {/* TODAY'S TICKETS */}
                 <div className="wallet-info">
-                  <span>My Tickets</span>
+                  <span>
+                    Today&apos;s Tickets
+                  </span>
 
-                  {userTickets.length === 0 ? (
+                  {todayTickets.length === 0 ? (
                     <p>
-                      No tickets purchased yet.
+                      No tickets purchased today.
                     </p>
                   ) : (
                     <div className="ticket-history">
-                      {userTickets.map(
-                        (ticket, index) => (
-                          <div
-                            key={index}
-                            className="ticket-card"
-                          >
-                            <p>
-                              <strong>
-                                Ticket #
-                              </strong>{" "}
-                              {ticket.ticketNumber.toString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Lottery ID
-                              </strong>{" "}
-                              {ticket.lotteryId.toString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Purchased
-                              </strong>{" "}
-                              {new Date(
-                                Number(
-                                  ticket.timestamp
-                                ) * 1000
-                              ).toLocaleString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Today Purchase
-                              </strong>{" "}
-                              {new Date(
-                                Number(
-                                  ticket.timestamp
-                                ) * 1000
-                              ).toDateString() ===
-                              new Date().toDateString()
-                                ? "Yes"
-                                : "No"}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Status
-                              </strong>{" "}
-                              {ticket.winner
-                                ? "🏆 Winner"
-                                : "❌ Not Winner"}
-                            </p>
-                          </div>
-                        )
+                      {todayTickets.map(
+                        (ticket, index) =>
+                          renderTicket(
+                            ticket,
+                            index,
+                            true
+                          )
                       )}
                     </div>
                   )}
                 </div>
 
+                {/* PREVIOUS WEEK - TODAY EXCLUDED */}
                 <div className="wallet-info">
                   <span>
                     Previous Week History
                   </span>
 
-                  {previousWeekTickets.length ===
-                  0 ? (
+                  {previousWeekTickets.length === 0 ? (
                     <p>
-                      No ticket history from last
-                      7 days.
+                      No ticket history from the
+                      previous 7 days.
                     </p>
                   ) : (
                     <div className="ticket-history">
                       {previousWeekTickets.map(
-                        (ticket, index) => (
-                          <div
-                            key={index}
-                            className="ticket-card"
-                          >
-                            <p>
-                              <strong>
-                                Ticket #
-                              </strong>{" "}
-                              {ticket.ticketNumber.toString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Lottery ID
-                              </strong>{" "}
-                              {ticket.lotteryId.toString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Purchased
-                              </strong>{" "}
-                              {new Date(
-                                Number(
-                                  ticket.timestamp
-                                ) * 1000
-                              ).toLocaleString()}
-                            </p>
-
-                            <p>
-                              <strong>
-                                Status
-                              </strong>{" "}
-                              {ticket.winner
-                                ? "🏆 Winner"
-                                : "❌ Not Winner"}
-                            </p>
-                          </div>
-                        )
+                        (ticket, index) =>
+                          renderTicket(
+                            ticket,
+                            index
+                          )
                       )}
                     </div>
                   )}
@@ -387,8 +420,10 @@ function Wallet() {
                 >
                   Disconnect Wallet
                 </button>
+
               </>
             )}
+
           </div>
         </div>
       </section>
