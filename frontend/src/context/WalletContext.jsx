@@ -12,14 +12,6 @@ import contractService from "../services/contractService";
 
 const WalletContext = createContext();
 
-const SCAI_TOKEN_ADDRESS =
-  "0xC6831944F79B197C54465509B2dE5BB66F65adA5";
-
-const SCAI_TOKEN_ABI = [
-  "function balanceOf(address account) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-];
-
 export const WalletProvider = ({ children }) => {
   const wallet = useWallet();
 
@@ -36,10 +28,8 @@ export const WalletProvider = ({ children }) => {
   const resetWalletData = useCallback(() => {
     setBalance("0.0000");
     setNetwork("");
-
     setContract(null);
     setContractReady(false);
-
     setRewardBalance("0.0000");
     setTotalWins(0);
     setUserTickets([]);
@@ -48,13 +38,11 @@ export const WalletProvider = ({ children }) => {
   }, []);
 
   const initialize = useCallback(async () => {
-    if (!wallet.isConnected || !wallet.walletAddress) {
-      resetWalletData();
-      setInitializing(false);
-      return;
-    }
-
-    if (!window.ethereum) {
+    if (
+      !wallet.isConnected ||
+      !wallet.walletAddress ||
+      !window.ethereum
+    ) {
       resetWalletData();
       setInitializing(false);
       return;
@@ -67,12 +55,6 @@ export const WalletProvider = ({ children }) => {
         window.ethereum
       );
 
-      console.log("Initializing wallet...");
-      console.log("Wallet:", wallet.walletAddress);
-
-      // --------------------------------------------------
-      // WALLET ETH BALANCE
-      // --------------------------------------------------
       const balanceWei = await provider.getBalance(
         wallet.walletAddress
       );
@@ -83,100 +65,53 @@ export const WalletProvider = ({ children }) => {
         ).toFixed(4)
       );
 
-      // --------------------------------------------------
-      // NETWORK
-      // --------------------------------------------------
-      const networkInfo = await provider.getNetwork();
-      const chainId = Number(networkInfo.chainId);
+      const networkInfo =
+        await provider.getNetwork();
 
-      console.log("Network:", networkInfo);
-      console.log("Chain ID:", chainId);
+      const chainId =
+        Number(networkInfo.chainId);
 
-      let networkName = networkInfo.name;
+      setNetwork(
+        networkInfo.name &&
+        networkInfo.name !== "unknown"
+          ? networkInfo.name
+          : `Chain ID: ${chainId}`
+      );
 
-      if (
-        !networkName ||
-        networkName === "unknown"
-      ) {
-        networkName = `Chain ID: ${chainId}`;
-      }
-
-      setNetwork(networkName);
-
-      // --------------------------------------------------
-      // LOTTERY CONTRACT
-      // --------------------------------------------------
       const contractInstance =
         await contractService.getContract();
 
       if (!contractInstance) {
-        console.error(
-          "Contract instance could not be created."
-        );
-
-        setContract(null);
-        setContractReady(false);
-
-        setRewardBalance("0.0000");
-        setTotalWins(0);
-        setUserTickets([]);
-
+        resetWalletData();
         return;
       }
-
-      console.log(
-        "Contract connected:",
-        contractInstance.target
-      );
 
       setContract(contractInstance);
       setContractReady(true);
 
-      // --------------------------------------------------
-      // ACTUAL SCAI TOKEN BALANCE
-      // --------------------------------------------------
+      // IMPORTANT:
+      // Actual SCAI reward balance
+      // comes from getRewardBalance().
       try {
-        const scaiToken = new ethers.Contract(
-          SCAI_TOKEN_ADDRESS,
-          SCAI_TOKEN_ABI,
-          provider
-        );
-
-        const tokenBalance =
-          await scaiToken.balanceOf(
+        const rewards =
+          await contractInstance.getRewardBalance(
             wallet.walletAddress
           );
 
-        const decimals =
-          await scaiToken.decimals();
-
-        const formattedRewards =
+        setRewardBalance(
           Number(
-            ethers.formatUnits(
-              tokenBalance,
-              decimals
-            )
-          ).toFixed(4);
-
-        setRewardBalance(formattedRewards);
-
-        console.log(
-          "Actual SCAI Token Balance:",
-          formattedRewards,
-          "SCAI"
+            ethers.formatEther(rewards)
+          ).toFixed(4)
         );
       } catch (error) {
         console.error(
-          "SCAI token balance read failed:",
+          "SCAI reward balance read failed:",
           error
         );
 
         setRewardBalance("0.0000");
       }
 
-      // --------------------------------------------------
-      // TOTAL WINS
-      // --------------------------------------------------
       try {
         const wins =
           await contractInstance.getTotalWins(
@@ -193,9 +128,6 @@ export const WalletProvider = ({ children }) => {
         setTotalWins(0);
       }
 
-      // --------------------------------------------------
-      // USER TICKETS
-      // --------------------------------------------------
       try {
         const tickets =
           await contractInstance.getUserTickets(
@@ -219,7 +151,6 @@ export const WalletProvider = ({ children }) => {
 
       setContract(null);
       setContractReady(false);
-
       setRewardBalance("0.0000");
       setTotalWins(0);
       setUserTickets([]);
@@ -232,25 +163,22 @@ export const WalletProvider = ({ children }) => {
     resetWalletData,
   ]);
 
-  // --------------------------------------------------
-  // INITIALIZE WHEN WALLET CHANGES
-  // --------------------------------------------------
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // --------------------------------------------------
-  // METAMASK EVENTS
-  // --------------------------------------------------
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = async (
+    const handleAccountsChanged = (
       accounts
     ) => {
       contractService.reset();
 
-      if (!accounts || accounts.length === 0) {
+      if (
+        !accounts ||
+        accounts.length === 0
+      ) {
         resetWalletData();
         return;
       }
@@ -258,7 +186,7 @@ export const WalletProvider = ({ children }) => {
       setInitializing(true);
     };
 
-    const handleChainChanged = async () => {
+    const handleChainChanged = () => {
       contractService.reset();
 
       setTimeout(() => {
@@ -287,21 +215,15 @@ export const WalletProvider = ({ children }) => {
         handleChainChanged
       );
     };
-  }, [initialize, resetWalletData]);
+  }, [
+    initialize,
+    resetWalletData,
+  ]);
 
-  // --------------------------------------------------
-  // CONNECT WALLET
-  // --------------------------------------------------
   const connectWallet = async () => {
-    const connected =
-      await wallet.connectWallet();
-
-    return connected;
+    return await wallet.connectWallet();
   };
 
-  // --------------------------------------------------
-  // DISCONNECT WALLET
-  // --------------------------------------------------
   const disconnectWallet = () => {
     wallet.disconnectWallet();
     resetWalletData();
@@ -310,11 +232,15 @@ export const WalletProvider = ({ children }) => {
   return (
     <WalletContext.Provider
       value={{
-        walletAddress: wallet.walletAddress,
-        isConnected: wallet.isConnected,
+        walletAddress:
+          wallet.walletAddress,
+
+        isConnected:
+          wallet.isConnected,
 
         loading:
-          wallet.loading || initializing,
+          wallet.loading ||
+          initializing,
 
         connectWallet,
         disconnectWallet,
@@ -331,11 +257,9 @@ export const WalletProvider = ({ children }) => {
 
         setBalance,
         setNetwork,
-
         setRewardBalance,
         setTotalWins,
         setUserTickets,
-
         setContract,
       }}
     >
