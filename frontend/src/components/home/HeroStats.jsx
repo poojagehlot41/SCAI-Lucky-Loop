@@ -5,10 +5,7 @@ import { useWalletContext } from "../../context/WalletContext";
 import contractService from "../../services/contractService";
 
 const HeroStats = () => {
-  const {
-    contractReady,
-    walletAddress,
-  } = useWalletContext();
+  const { contractReady, walletAddress } = useWalletContext();
 
   const [stats, setStats] = useState({
     players: "--",
@@ -30,77 +27,34 @@ const HeroStats = () => {
       try {
         if (!contractReady) return;
 
-        const contract =
-          await contractService.getContract();
+        const contract = await contractService.getContract();
 
         if (!contract) return;
 
-        const players =
-          await contract.getPlayersCount();
+        // Current lottery details
+        const details = await contract.getLotteryDetails();
 
-        const prizePool =
-          await contract.getPrizePool();
+        const players = details.playersCount;
+        const lotteryOpen = details.isOpen;
+        const endTime = details.endTime;
 
-        const lotteryOpen =
-          await contract.lotteryOpen();
+        // Current SCAI balance held by lottery contract
+        const prizePoolRaw =
+          await contract.getContractScaiBalance();
 
-        const endTime =
-          await contract.lotteryEndTime();
-
-        let winner = "";
-        let winnerPrize = "";
-        let resultReady = false;
-        let isWinner = false;
-
-        try {
-          const currentId =
-            await contract.getCurrentLotteryId();
-
-          if (Number(currentId) > 1) {
-            const round =
-              await contract.getLotteryRound(
-                Number(currentId) - 1
-              );
-
-            if (round.completed) {
-              resultReady = true;
-
-              winner = round.winner;
-
-              winnerPrize = Number(
-                ethers.formatEther(
-                  round.prizePool
-                )
-              ).toFixed(4);
-
-              if (
-                walletAddress &&
-                winner.toLowerCase() ===
-                  walletAddress.toLowerCase()
-              ) {
-                isWinner = true;
-              }
-            }
-          }
-        } catch (err) {
-          console.log(err);
-        }
+        const prizePool = Number(
+          ethers.formatEther(prizePoolRaw)
+        ).toFixed(4);
 
         const updateCountdown = () => {
-          const now = Math.floor(
-            Date.now() / 1000
-          );
-
-          const remaining =
-            Number(endTime) - now;
+          const now = Math.floor(Date.now() / 1000);
+          const remaining = Number(endTime) - now;
 
           if (remaining <= 0) {
             setStats((prev) => ({
               ...prev,
-              countdown:
-                "Winner Selection Pending",
+              countdown: "Result Pending",
             }));
-
             return;
           }
 
@@ -109,9 +63,7 @@ const HeroStats = () => {
           ).padStart(2, "0");
 
           const m = String(
-            Math.floor(
-              (remaining % 3600) / 60
-            )
+            Math.floor((remaining % 3600) / 60)
           ).padStart(2, "0");
 
           const s = String(
@@ -126,8 +78,9 @@ const HeroStats = () => {
 
         updateCountdown();
 
-        if (interval)
+        if (interval) {
           clearInterval(interval);
+        }
 
         interval = setInterval(
           updateCountdown,
@@ -137,44 +90,41 @@ const HeroStats = () => {
         setStats((prev) => ({
           ...prev,
           players: players.toString(),
-
-          prizePool: `${Number(
-            ethers.formatEther(prizePool)
-          ).toFixed(4)} SCAI`,
-
+          prizePool: `${prizePool} SCAI`,
           lotteryStatus: lotteryOpen
             ? "Open"
             : "Closed",
-
           referralStatus: "Live",
 
-          winner,
-
-          winnerPrize,
-
-          resultReady,
-
-          isWinner,
+          // Current ABI does not expose previous-round
+          // winner getter, so don't make a broken call.
+          winner: "",
+          winnerPrize: "",
+          resultReady: false,
+          isWinner: false,
         }));
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Failed to load lottery stats:",
+          error
+        );
       }
     };
 
     loadStats();
 
     return () => {
-      if (interval)
+      if (interval) {
         clearInterval(interval);
+      }
     };
   }, [contractReady, walletAddress]);
 
   return (
     <div className="hero-card">
-
       <h3>Live Lottery Overview</h3>
 
-            <div className="stat-item">
+      <div className="stat-item">
         <span>Total Players</span>
         <strong>{stats.players}</strong>
       </div>
@@ -198,72 +148,6 @@ const HeroStats = () => {
         <span>Next Draw In</span>
         <strong>{stats.countdown}</strong>
       </div>
-
-      {stats.resultReady && (
-        <div
-          style={{
-            marginTop: "20px",
-            padding: "16px",
-            borderRadius: "14px",
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            textAlign: "center",
-          }}
-        >
-          {stats.isWinner ? (
-            <>
-              <h3
-                style={{
-                  color: "#22c55e",
-                  marginBottom: "10px",
-                }}
-              >
-                🎉 Congratulations!
-              </h3>
-
-              <p>You won this lottery.</p>
-
-              <p>
-                Prize: <strong>{stats.winnerPrize} SCAI</strong>
-              </p>
-
-              <small>
-                Reward has been credited to your wallet.
-              </small>
-            </>
-          ) : (
-            <>
-              <h3
-                style={{
-                  color: "#facc15",
-                  marginBottom: "10px",
-                }}
-              >
-                🏆 Lottery Result
-              </h3>
-
-              <p>Winner</p>
-
-              <strong>
-                {stats.winner.slice(0, 6)}...
-                {stats.winner.slice(-4)}
-              </strong>
-
-              <p
-                style={{
-                  marginTop: "10px",
-                }}
-              >
-                Prize: {stats.winnerPrize} SCAI
-              </p>
-
-              <small>
-                Better luck next time!
-              </small>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 };

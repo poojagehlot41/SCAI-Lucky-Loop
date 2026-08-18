@@ -4,7 +4,8 @@ import { ethers } from "ethers";
 import { useWalletContext } from "../../context/WalletContext";
 
 const StatsSection = () => {
-  const { contract, contractReady } = useWalletContext();
+  const { contract, contractReady } =
+    useWalletContext();
 
   const [stats, setStats] = useState({
     players: "--",
@@ -19,48 +20,33 @@ const StatsSection = () => {
       if (!contractReady || !contract) return;
 
       try {
-        const players = await contract.getPlayersCount();
-        const prizePool = await contract.getPrizePool();
-        const lotteryOpen = await contract.lotteryOpen();
+        const details =
+          await contract.getLotteryDetails();
 
-        let winnerAddress = "No Winner Yet";
+        const prizePoolRaw =
+          await contract.getContractScaiBalance();
 
-        try {
-          const currentLotteryId =
-            await contract.getCurrentLotteryId();
-
-          if (Number(currentLotteryId) > 1) {
-            const round =
-              await contract.getLotteryRound(
-                Number(currentLotteryId) - 1
-              );
-
-            if (
-              round.completed &&
-              round.winner !==
-                "0x0000000000000000000000000000000000000000"
-            ) {
-              winnerAddress = `${round.winner.slice(
-                0,
-                6
-              )}...${round.winner.slice(-4)}`;
-            }
-          }
-        } catch (err) {
-          console.log(
-            "Winner data unavailable",
-            err
-          );
-        }
+        const prizePool = Number(
+          ethers.formatEther(prizePoolRaw)
+        ).toFixed(4);
 
         setStats({
-          players: players.toString(),
-          prizePool: `${Number(
-            ethers.formatEther(prizePool)
-          ).toFixed(4)} ETH`,
-          status: lotteryOpen ? "Open" : "Closed",
+          players:
+            details.playersCount.toString(),
+
+          prizePool:
+            `${prizePool} SCAI`,
+
+          status:
+            details.isOpen
+              ? "Open"
+              : "Closed",
+
           referrals: "Live",
-          winner: winnerAddress,
+
+          // Current contract ABI doesn't expose
+          // previous winner getter.
+          winner: "No Winner Yet",
         });
       } catch (error) {
         console.error(
@@ -77,7 +63,8 @@ const StatsSection = () => {
       10000
     );
 
-    return () => clearInterval(interval);
+    return () =>
+      clearInterval(interval);
   }, [contract, contractReady]);
 
   const heroStats = [
@@ -91,8 +78,7 @@ const StatsSection = () => {
       value: stats.prizePool,
       title: "Prize Pool",
     },
-
-        {
+    {
       id: 3,
       value: stats.referrals,
       title: "Referral Rewards",
