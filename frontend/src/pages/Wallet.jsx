@@ -1,474 +1,283 @@
 import {
-  Wallet as WalletIcon,
-  Copy,
-  CheckCircle,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { ethers } from "ethers";
 
-import { useWalletContext } from "../context/WalletContext";
+import useWallet from "../hooks/useWallet";
 import contractService from "../services/contractService";
 
-import "../styles/wallet.css";
+const WalletContext = createContext();
 
-function Wallet() {
-  const {
-    walletAddress,
-    isConnected,
-    network,
-    balance,
-    rewardBalance,
-    totalWins,
-    userTickets,
-    connectWallet,
-    disconnectWallet,
-    loading,
-    contractReady,
-  } = useWalletContext();
+export const WalletProvider = ({ children }) => {
+  const wallet = useWallet();
 
-  const [copied, setCopied] = useState(false);
-  const [resultTime, setResultTime] = useState("--");
+  const [balance, setBalance] = useState("0.0000");
+  const [network, setNetwork] = useState("");
+  const [contract, setContract] = useState(null);
+  const [contractReady, setContractReady] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
-  // --------------------------------------------------
-  // DATE RANGES
-  // --------------------------------------------------
+  const [rewardBalance, setRewardBalance] = useState("0.0000");
+  const [totalWins, setTotalWins] = useState(0);
+  const [userTickets, setUserTickets] = useState([]);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const resetWalletData = useCallback(() => {
+    setBalance("0.0000");
+    setNetwork("");
+    setContract(null);
+    setContractReady(false);
+    setRewardBalance("0.0000");
+    setTotalWins(0);
+    setUserTickets([]);
 
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    contractService.reset();
+  }, []);
 
-  const sevenDaysAgo = new Date(todayStart);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  // --------------------------------------------------
-  // REMOVE DUPLICATE TICKETS
-  // --------------------------------------------------
-
-  const uniqueTickets = Array.from(
-    new Map(
-      (userTickets || []).map((ticket) => [
-        `${ticket.ticketNumber}-${ticket.lotteryId}`,
-        ticket,
-      ])
-    ).values()
-  );
-
-  // --------------------------------------------------
-  // TODAY'S TICKETS
-  // --------------------------------------------------
-
-  const todayTickets = uniqueTickets.filter((ticket) => {
-    const ticketDate = new Date(
-      Number(ticket.timestamp) * 1000
-    );
-
-    return (
-      ticketDate >= todayStart &&
-      ticketDate < tomorrowStart
-    );
-  });
-
-  // --------------------------------------------------
-  // PREVIOUS 7 DAYS
-  // TODAY EXCLUDED
-  // --------------------------------------------------
-
-  const previousWeekTickets = uniqueTickets.filter(
-    (ticket) => {
-      const ticketDate = new Date(
-        Number(ticket.timestamp) * 1000
-      );
-
-      return (
-        ticketDate >= sevenDaysAgo &&
-        ticketDate < todayStart
-      );
+  const initialize = useCallback(async () => {
+    if (!wallet.isConnected || !wallet.walletAddress) {
+      resetWalletData();
+      setInitializing(false);
+      return;
     }
-  );
 
-  // --------------------------------------------------
-  // EXPECTED RESULT TIME
-  // --------------------------------------------------
+    if (!window.ethereum) {
+      resetWalletData();
+      setInitializing(false);
+      return;
+    }
 
-  useEffect(() => {
-    const loadResultTime = async () => {
+    setInitializing(true);
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+
+      // ETH balance
+      const balanceWei = await provider.getBalance(
+        wallet.walletAddress
+      );
+
+      setBalance(
+        Number(ethers.formatEther(balanceWei)).toFixed(4)
+      );
+
+      // Network
+      const networkInfo = await provider.getNetwork();
+
+      let networkName = networkInfo.name;
+
+      if (!networkName || networkName === "unknown") {
+        networkName = `Chain ID: ${networkInfo.chainId}`;
+      }
+
+      setNetwork(networkName);
+
+      // Lottery contract
+      const contractInstance =
+        await contractService.getContract();
+
+      if (!contractInstance) {
+        setContract(null);
+        setContractReady(false);
+        setRewardBalance("0.0000");
+        setTotalWins(0);
+        setUserTickets([]);
+        return;
+      }
+
+      setContract(contractInstance);
+      setContractReady(true);
+
+      // ==================================================
+      // ACTUAL LOTTERY REWARD BALANCE
+      // DO NOT USE SCAI TOKEN balanceOf()
+      // ==================================================
       try {
-        if (!isConnected || !contractReady) {
-          setResultTime("--");
-          return;
-        }
+        const reward =
+          await contractInstance.getRewardBalance(
+            wallet.walletAddress
+          );
 
-        const contract =
-          await contractService.getContract();
+        const formattedReward =
+          ethers.formatEther(reward);
 
-        if (!contract) {
-          setResultTime("--");
-          return;
-        }
+        setRewardBalance(
+          Number(formattedReward).toFixed(4)
+        );
 
-        const lotteryEndTime =
-          await contract.lotteryEndTime();
-
-        const resultDelay =
-          await contract.lotteryResultDelay();
-
-        const expectedResultTimestamp =
-          (Number(lotteryEndTime) +
-            Number(resultDelay)) *
-          1000;
-
-        setResultTime(
-          new Date(
-            expectedResultTimestamp
-          ).toLocaleString()
+        console.log(
+          "Lottery Reward Balance:",
+          formattedReward,
+          "SCAI"
         );
       } catch (error) {
         console.error(
-          "Result time loading failed:",
+          "Lottery reward balance read failed:",
           error
         );
 
-        setResultTime("--");
+        setRewardBalance("0.0000");
       }
-    };
 
-    loadResultTime();
-  }, [isConnected, contractReady]);
+      // Total wins
+      try {
+        const wins =
+          await contractInstance.getTotalWins(
+            wallet.walletAddress
+          );
 
-  // --------------------------------------------------
-  // COPY WALLET ADDRESS
-  // --------------------------------------------------
+        setTotalWins(Number(wins));
+      } catch (error) {
+        console.error(
+          "Total wins read failed:",
+          error
+        );
 
-  const copyAddress = async () => {
-    if (!walletAddress) return;
+        setTotalWins(0);
+      }
 
-    try {
-      await navigator.clipboard.writeText(
-        walletAddress
+      // User tickets
+      try {
+        const tickets =
+          await contractInstance.getUserTickets(
+            wallet.walletAddress
+          );
+
+        setUserTickets(tickets || []);
+      } catch (error) {
+        console.error(
+          "User tickets read failed:",
+          error
+        );
+
+        setUserTickets([]);
+      }
+    } catch (error) {
+      console.error(
+        "Wallet/contract initialization failed:",
+        error
       );
 
-      setCopied(true);
+      setContract(null);
+      setContractReady(false);
+      setRewardBalance("0.0000");
+      setTotalWins(0);
+      setUserTickets([]);
+    } finally {
+      setInitializing(false);
+    }
+  }, [
+    wallet.walletAddress,
+    wallet.isConnected,
+    resetWalletData,
+  ]);
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  // MetaMask events
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const handleAccountsChanged = () => {
+      contractService.reset();
+
+      setInitializing(true);
 
       setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        initialize();
+      }, 300);
+    };
 
-  // --------------------------------------------------
-  // RENDER TICKET
-  // --------------------------------------------------
+    const handleChainChanged = () => {
+      contractService.reset();
 
-  const renderTicket = (
-    ticket,
-    index,
-    showTodayPurchase = false
-  ) => {
-    const ticketNumber =
-      ticket.ticketNumber?.toString() || "--";
+      setTimeout(() => {
+        initialize();
+      }, 300);
+    };
 
-    const lotteryId =
-      ticket.lotteryId?.toString() || "--";
-
-    const purchasedDate = new Date(
-      Number(ticket.timestamp) * 1000
+    window.ethereum.on(
+      "accountsChanged",
+      handleAccountsChanged
     );
 
-    return (
-      <div
-        key={`${ticketNumber}-${lotteryId}-${index}`}
-        className="ticket-card"
-      >
-        <p>
-          <strong>Ticket #</strong>{" "}
-          {ticketNumber}
-        </p>
-
-        <p>
-          <strong>Lottery ID</strong>{" "}
-          {lotteryId}
-        </p>
-
-        <p>
-          <strong>Purchased</strong>{" "}
-          {purchasedDate.toLocaleString()}
-        </p>
-
-        {showTodayPurchase && (
-          <p>
-            <strong>Today Purchase</strong>{" "}
-            Yes
-          </p>
-        )}
-
-        <p>
-          <strong>Status</strong>{" "}
-          {ticket.winner
-            ? "🏆 Winner"
-            : "❌ Not Winner"}
-        </p>
-      </div>
+    window.ethereum.on(
+      "chainChanged",
+      handleChainChanged
     );
+
+    return () => {
+      window.ethereum.removeListener(
+        "accountsChanged",
+        handleAccountsChanged
+      );
+
+      window.ethereum.removeListener(
+        "chainChanged",
+        handleChainChanged
+      );
+    };
+  }, [initialize]);
+
+  const connectWallet = async () => {
+    return await wallet.connectWallet();
   };
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
+  const disconnectWallet = () => {
+    wallet.disconnectWallet();
+    resetWalletData();
+  };
 
   return (
-    <main className="wallet-page">
-      <section className="wallet-hero">
-        <div className="container">
-          <div className="wallet-card">
+    <WalletContext.Provider
+      value={{
+        walletAddress: wallet.walletAddress,
+        isConnected: wallet.isConnected,
 
-            <div className="wallet-icon">
-              <WalletIcon size={42} />
-            </div>
+        loading:
+          wallet.loading || initializing,
 
-            <h1>Wallet Dashboard</h1>
+        connectWallet,
+        disconnectWallet,
 
-            <p>
-              Connect your wallet to access SCAI
-              Lucky Loop and interact with the
-              lottery smart contract.
-            </p>
+        balance,
+        network,
 
-            {!isConnected ? (
-              <button
-                className="primary-btn"
-                onClick={connectWallet}
-                disabled={loading}
-              >
-                {loading
-                  ? "Connecting..."
-                  : "Connect Wallet"}
-              </button>
-            ) : (
-              <>
-                {/* WALLET ADDRESS */}
+        rewardBalance,
+        totalWins,
+        userTickets,
 
-                <div className="wallet-info">
-                  <span>Wallet Address</span>
+        contract,
+        contractReady,
 
-                  <div className="wallet-address">
-                    <strong>
-                      {walletAddress.slice(0, 8)}
-                      ...
-                      {walletAddress.slice(-6)}
-                    </strong>
-
-                    <button
-                      className="copy-btn"
-                      onClick={copyAddress}
-                      title="Copy Address"
-                    >
-                      {copied ? (
-                        <CheckCircle size={18} />
-                      ) : (
-                        <Copy size={18} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* NETWORK */}
-
-                <div className="wallet-info">
-                  <span>Network</span>
-
-                  <strong>
-                    {network || "--"}
-                  </strong>
-                </div>
-
-                {/* BALANCE */}
-
-                <div className="wallet-info">
-                  <span>Balance</span>
-
-                  <strong>
-                    {balance} ETH
-                  </strong>
-                </div>
-
-                {/* REWARD BALANCE */}
-
-                <div className="wallet-info">
-                  <span>Reward Balance</span>
-
-                  <strong>
-                    {rewardBalance} SCAI
-                  </strong>
-                </div>
-
-                {/* TOTAL WINS */}
-
-                <div className="wallet-info">
-                  <span>Total Wins</span>
-
-                  <strong>
-                    {totalWins}
-                  </strong>
-                </div>
-
-                {/* REWARD STATUS */}
-
-                <div className="wallet-info">
-                  <span>Reward Status</span>
-
-                  <strong
-                    className={
-                      Number(rewardBalance) > 0
-                        ? "status-live"
-                        : "status-pending"
-                    }
-                  >
-                    {Number(rewardBalance) > 0
-                      ? "Reward Credited"
-                      : "No Reward Yet"}
-                  </strong>
-                </div>
-
-                {/* RESULT TIME */}
-
-                <div className="wallet-info">
-                  <span>
-                    Expected Result Time
-                  </span>
-
-                  <strong>
-                    {resultTime}
-                  </strong>
-                </div>
-
-                {/* HOW REWARDS WORK */}
-
-                <div className="wallet-info">
-                  <span>
-                    How Rewards Work
-                  </span>
-
-                  <p>
-                    Winners automatically receive
-                    SCAI reward credits after the
-                    lottery winner is selected.
-                    These rewards can be used to
-                    purchase future lottery tickets,
-                    if reward-based ticket purchases
-                    are enabled.
-                  </p>
-                </div>
-
-                {/* WALLET STATUS */}
-
-                <div className="wallet-info">
-                  <span>Wallet Status</span>
-
-                  <strong className="status-live">
-                    Connected
-                  </strong>
-                </div>
-
-                {/* CONTRACT STATUS */}
-
-                <div className="wallet-info">
-                  <span>
-                    Smart Contract
-                  </span>
-
-                  <strong
-                    className={
-                      contractReady
-                        ? "status-live"
-                        : "status-pending"
-                    }
-                  >
-                    {contractReady
-                      ? "Connected"
-                      : "Connection Failed"}
-                  </strong>
-                </div>
-
-                {!contractReady && (
-                  <div className="wallet-warning">
-                    <p>
-                      ⚠️ Unable to connect to the
-                      smart contract. Please check
-                      your wallet network and try
-                      again.
-                    </p>
-                  </div>
-                )}
-
-                {/* TODAY'S TICKETS */}
-
-                <div className="wallet-info">
-                  <span>
-                    Today&apos;s Tickets
-                  </span>
-
-                  {todayTickets.length === 0 ? (
-                    <p>
-                      No tickets purchased today.
-                    </p>
-                  ) : (
-                    <div className="ticket-history">
-                      {todayTickets.map(
-                        (ticket, index) =>
-                          renderTicket(
-                            ticket,
-                            index,
-                            true
-                          )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* PREVIOUS WEEK */}
-
-                <div className="wallet-info">
-                  <span>
-                    Previous Week History
-                  </span>
-
-                  {previousWeekTickets.length ===
-                  0 ? (
-                    <p>
-                      No ticket history from the
-                      previous 7 days.
-                    </p>
-                  ) : (
-                    <div className="ticket-history">
-                      {previousWeekTickets.map(
-                        (ticket, index) =>
-                          renderTicket(
-                            ticket,
-                            index
-                          )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* DISCONNECT */}
-
-                <button
-                  className="secondary-btn"
-                  onClick={disconnectWallet}
-                >
-                  Disconnect Wallet
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-    </main>
+        setBalance,
+        setNetwork,
+        setRewardBalance,
+        setTotalWins,
+        setUserTickets,
+        setContract,
+      }}
+    >
+      {children}
+    </WalletContext.Provider>
   );
-}
+};
 
-export default Wallet;
+export const useWalletContext = () => {
+  const context = useContext(WalletContext);
+
+  if (!context) {
+    throw new Error(
+      "useWalletContext must be used inside WalletProvider."
+    );
+  }
+
+  return context;
+};
+
+export default WalletContext;
