@@ -12,6 +12,14 @@ import contractService from "../services/contractService";
 
 const WalletContext = createContext();
 
+const SCAI_TOKEN_ADDRESS =
+  "0xC6831944F79B197C54465509B2dE5BB66F65adA5";
+
+const SCAI_TOKEN_ABI = [
+  "function balanceOf(address account) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+];
+
 export const WalletProvider = ({ children }) => {
   const wallet = useWallet();
 
@@ -62,7 +70,9 @@ export const WalletProvider = ({ children }) => {
       console.log("Initializing wallet...");
       console.log("Wallet:", wallet.walletAddress);
 
-      // Wallet balance
+      // --------------------------------------------------
+      // WALLET ETH BALANCE
+      // --------------------------------------------------
       const balanceWei = await provider.getBalance(
         wallet.walletAddress
       );
@@ -73,7 +83,9 @@ export const WalletProvider = ({ children }) => {
         ).toFixed(4)
       );
 
-      // Network
+      // --------------------------------------------------
+      // NETWORK
+      // --------------------------------------------------
       const networkInfo = await provider.getNetwork();
       const chainId = Number(networkInfo.chainId);
 
@@ -91,7 +103,9 @@ export const WalletProvider = ({ children }) => {
 
       setNetwork(networkName);
 
-      // Contract
+      // --------------------------------------------------
+      // LOTTERY CONTRACT
+      // --------------------------------------------------
       const contractInstance =
         await contractService.getContract();
 
@@ -119,36 +133,50 @@ export const WalletProvider = ({ children }) => {
       setContractReady(true);
 
       // --------------------------------------------------
-      // REWARD BALANCE
-      // Use the same source as Referral page
+      // ACTUAL SCAI TOKEN BALANCE
       // --------------------------------------------------
       try {
-        const rewards =
-          await contractInstance.getReferralRewards(
+        const scaiToken = new ethers.Contract(
+          SCAI_TOKEN_ADDRESS,
+          SCAI_TOKEN_ABI,
+          provider
+        );
+
+        const tokenBalance =
+          await scaiToken.balanceOf(
             wallet.walletAddress
           );
 
-        const formattedRewards = Number(
-          ethers.formatEther(rewards)
-        ).toFixed(4);
+        const decimals =
+          await scaiToken.decimals();
+
+        const formattedRewards =
+          Number(
+            ethers.formatUnits(
+              tokenBalance,
+              decimals
+            )
+          ).toFixed(4);
 
         setRewardBalance(formattedRewards);
 
         console.log(
-          "Reward Balance:",
+          "Actual SCAI Token Balance:",
           formattedRewards,
-          "ETH"
+          "SCAI"
         );
       } catch (error) {
         console.error(
-          "Reward balance read failed:",
+          "SCAI token balance read failed:",
           error
         );
 
         setRewardBalance("0.0000");
       }
 
-      // Total wins
+      // --------------------------------------------------
+      // TOTAL WINS
+      // --------------------------------------------------
       try {
         const wins =
           await contractInstance.getTotalWins(
@@ -165,7 +193,9 @@ export const WalletProvider = ({ children }) => {
         setTotalWins(0);
       }
 
-      // User tickets
+      // --------------------------------------------------
+      // USER TICKETS
+      // --------------------------------------------------
       try {
         const tickets =
           await contractInstance.getUserTickets(
@@ -202,16 +232,22 @@ export const WalletProvider = ({ children }) => {
     resetWalletData,
   ]);
 
-  // Initialize after wallet state is updated
+  // --------------------------------------------------
+  // INITIALIZE WHEN WALLET CHANGES
+  // --------------------------------------------------
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // MetaMask events
+  // --------------------------------------------------
+  // METAMASK EVENTS
+  // --------------------------------------------------
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = async (accounts) => {
+    const handleAccountsChanged = async (
+      accounts
+    ) => {
       contractService.reset();
 
       if (!accounts || accounts.length === 0) {
@@ -253,6 +289,9 @@ export const WalletProvider = ({ children }) => {
     };
   }, [initialize, resetWalletData]);
 
+  // --------------------------------------------------
+  // CONNECT WALLET
+  // --------------------------------------------------
   const connectWallet = async () => {
     const connected =
       await wallet.connectWallet();
@@ -260,6 +299,9 @@ export const WalletProvider = ({ children }) => {
     return connected;
   };
 
+  // --------------------------------------------------
+  // DISCONNECT WALLET
+  // --------------------------------------------------
   const disconnectWallet = () => {
     wallet.disconnectWallet();
     resetWalletData();
