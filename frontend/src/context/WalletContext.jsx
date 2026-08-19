@@ -15,7 +15,7 @@ const WalletContext = createContext();
 export const WalletProvider = ({ children }) => {
   const wallet = useWallet();
 
-  const [balance, setBalance] = useState("0.0000");
+  const [balance, setBalance] = useState("0.000");
   const [network, setNetwork] = useState("");
   const [contract, setContract] = useState(null);
   const [contractReady, setContractReady] = useState(false);
@@ -26,7 +26,7 @@ export const WalletProvider = ({ children }) => {
   const [userTickets, setUserTickets] = useState([]);
 
   const resetWalletData = useCallback(() => {
-    setBalance("0.0000");
+    setBalance("0.000");
     setNetwork("");
     setContract(null);
     setContractReady(false);
@@ -62,7 +62,7 @@ export const WalletProvider = ({ children }) => {
       setBalance(
         Number(
           ethers.formatEther(balanceWei)
-        ).toFixed(4)
+        ).toFixed(3)
       );
 
       const networkInfo =

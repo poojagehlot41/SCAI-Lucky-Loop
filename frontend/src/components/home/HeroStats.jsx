@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ethers } from "ethers";
 
 import { useWalletContext } from "../../context/WalletContext";
@@ -13,15 +13,13 @@ const HeroStats = () => {
     lotteryStatus: "--",
     referralStatus: "Live",
     countdown: "--:--:--",
-
-    winner: "",
-    winnerPrize: "",
-    isWinner: false,
-    resultReady: false,
   });
+
+  const winnerSelectionStarted = useRef(false);
 
   useEffect(() => {
     let interval;
+    let resultTimeout;
 
     const loadStats = async () => {
       try {
@@ -31,56 +29,169 @@ const HeroStats = () => {
 
         if (!contract) return;
 
-        // Current lottery details
         const details = await contract.getLotteryDetails();
 
-        const players = details.playersCount;
+        const players = Number(details.playersCount);
         const lotteryOpen = details.isOpen;
-        const endTime = details.endTime;
+        const endTime = Number(details.endTime);
 
-        // Current SCAI balance held by lottery contract
         const prizePoolRaw =
-          await contract.getContractScaiBalance();
+          await contract.getContractEthBalance();
 
         const prizePool = Number(
           ethers.formatEther(prizePoolRaw)
-        ).toFixed(4);
+        ).toFixed(3);
 
-        const updateCountdown = () => {
-          const now = Math.floor(Date.now() / 1000);
-          const remaining = Number(endTime) - now;
+        const updateCountdown = async () => {
+          try {
+            const now = Math.floor(Date.now() / 1000);
+            const remaining = endTime - now;
 
-          if (remaining <= 0) {
+            if (remaining <= 0) {
+              if (!winnerSelectionStarted.current) {
+                winnerSelectionStarted.current = true;
+
+                setStats((prev) => ({
+                  ...prev,
+                  countdown: "Result Pending",
+                  lotteryStatus: "Result Pending",
+                }));
+
+                resultTimeout = setTimeout(async () => {
+                  try {
+                    const currentContract =
+                      await contractService.getContract();
+
+                    if (!currentContract) return;
+
+                    const currentDetails =
+                      await currentContract.getLotteryDetails();
+
+                    const currentPlayers =
+                      Number(currentDetails.playersCount);
+
+                    if (currentPlayers === 0) {
+                      winnerSelectionStarted.current = false;
+                      return;
+                    }
+
+                    await currentContract.selectWinner();
+
+                    await loadStatsAfterWinner();
+                  } catch (error) {
+                    console.error(
+                      "Automatic winner selection failed:",
+                      error
+                    );
+
+                    winnerSelectionStarted.current = false;
+                  }
+                }, 5000);
+              }
+
+              return;
+            }
+
+            const h = String(
+              Math.floor(remaining / 3600)
+            ).padStart(2, "0");
+
+            const m = String(
+              Math.floor((remaining % 3600) / 60)
+            ).padStart(2, "0");
+
+            const s = String(
+              remaining % 60
+            ).padStart(2, "0");
+
             setStats((prev) => ({
               ...prev,
-              countdown: "Result Pending",
+              countdown: `${h}:${m}:${s}`,
             }));
-            return;
+          } catch (error) {
+            console.error(
+              "Countdown update failed:",
+              error
+            );
           }
+        };
 
-          const h = String(
-            Math.floor(remaining / 3600)
-          ).padStart(2, "0");
+        const loadStatsAfterWinner = async () => {
+          try {
+            const updatedContract =
+              await contractService.getContract();
 
-          const m = String(
-            Math.floor((remaining % 3600) / 60)
-          ).padStart(2, "0");
+            if (!updatedContract) return;
 
-          const s = String(
-            remaining % 60
-          ).padStart(2, "0");
+            const updatedDetails =
+              await updatedContract.getLotteryDetails();
 
-          setStats((prev) => ({
-            ...prev,
-            countdown: `${h}:${m}:${s}`,
-          }));
+            const updatedPrizePoolRaw =
+              await updatedContract.getContractEthBalance();
+
+            const updatedPrizePool = Number(
+              ethers.formatEther(
+                updatedPrizePoolRaw
+              )
+            ).toFixed(3);
+
+            winnerSelectionStarted.current = false;
+
+            setStats((prev) => ({
+              ...prev,
+              players: Number(
+                updatedDetails.playersCount
+              ).toString(),
+              prizePool: `${updatedPrizePool} ETH`,
+              lotteryStatus: updatedDetails.isOpen
+                ? "Open"
+                : "Closed",
+              countdown: "--:--:--",
+            }));
+
+            if (updatedDetails.isOpen) {
+              const newEndTime =
+                Number(updatedDetails.endTime);
+
+              const now = Math.floor(
+                Date.now() / 1000
+              );
+
+              const remaining =
+                newEndTime - now;
+
+              if (remaining > 0) {
+                const h = String(
+                  Math.floor(
+                    remaining / 3600
+                  )
+                ).padStart(2, "0");
+
+                const m = String(
+                  Math.floor(
+                    (remaining % 3600) / 60
+                  )
+                ).padStart(2, "0");
+
+                const s = String(
+                  remaining % 60
+                ).padStart(2, "0");
+
+                setStats((prev) => ({
+                  ...prev,
+                  countdown: `${h}:${m}:${s}`,
+                }));
+              }
+            }
+          } catch (error) {
+            console.error(
+              "Failed to refresh lottery:",
+              error
+            );
+          }
         };
 
         updateCountdown();
-
-        if (interval) {
-          clearInterval(interval);
-        }
 
         interval = setInterval(
           updateCountdown,
@@ -90,18 +201,11 @@ const HeroStats = () => {
         setStats((prev) => ({
           ...prev,
           players: players.toString(),
-          prizePool: `${prizePool} SCAI`,
+          prizePool: `${prizePool} ETH`,
           lotteryStatus: lotteryOpen
             ? "Open"
             : "Closed",
           referralStatus: "Live",
-
-          // Current ABI does not expose previous-round
-          // winner getter, so don't make a broken call.
-          winner: "",
-          winnerPrize: "",
-          resultReady: false,
-          isWinner: false,
         }));
       } catch (error) {
         console.error(
@@ -116,6 +220,10 @@ const HeroStats = () => {
     return () => {
       if (interval) {
         clearInterval(interval);
+      }
+
+      if (resultTimeout) {
+        clearTimeout(resultTimeout);
       }
     };
   }, [contractReady, walletAddress]);
