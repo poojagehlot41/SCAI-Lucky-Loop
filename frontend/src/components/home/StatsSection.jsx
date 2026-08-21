@@ -4,67 +4,105 @@ import { ethers } from "ethers";
 import { useWalletContext } from "../../context/WalletContext";
 
 const StatsSection = () => {
-  const { contract, contractReady } =
-    useWalletContext();
+  const { contract, contractReady } = useWalletContext();
 
   const [stats, setStats] = useState({
     players: "--",
     prizePool: "--",
-    status: "--",
     referrals: "Live",
+    status: "--",
     winner: "No Winner Yet",
   });
 
   useEffect(() => {
-    const loadStats = async () => {
-      if (!contractReady || !contract) return;
+    if (!contractReady || !contract) {
+      return;
+    }
 
+    let active = true;
+
+    const loadStats = async () => {
       try {
+        // Current lottery details
         const details =
           await contract.getLotteryDetails();
 
+        // Current contract holds ETH, not SCAI
         const prizePoolRaw =
-          await contract.getContractScaiBalance();
+          await contract.getContractEthBalance();
 
-        const prizePool = Number(
-          ethers.formatEther(prizePoolRaw)
-        ).toFixed(4);
+        const prizePool =
+          Number(
+            ethers.formatEther(prizePoolRaw)
+          ).toFixed(4);
+
+        // Get latest completed lottery result
+        let winner = "No Winner Yet";
+
+        try {
+          const latestResult =
+            await contract.getLatestLotteryResult();
+
+          const winnerAddress =
+            latestResult.winner;
+
+          if (
+            winnerAddress &&
+            winnerAddress !==
+              "0x0000000000000000000000000000000000000000"
+          ) {
+            winner =
+              `${winnerAddress.slice(
+                0,
+                6
+              )}...${winnerAddress.slice(-4)}`;
+          }
+        } catch (winnerError) {
+          console.warn(
+            "Latest winner not available yet:",
+            winnerError
+          );
+        }
+
+        if (!active) return;
 
         setStats({
           players:
             details.playersCount.toString(),
 
           prizePool:
-            `${prizePool} SCAI`,
+            `${prizePool} ETH`,
+
+          referrals: "Live",
 
           status:
             details.isOpen
               ? "Open"
               : "Closed",
 
-          referrals: "Live",
-
-          // Current contract ABI doesn't expose
-          // previous winner getter.
-          winner: "No Winner Yet",
+          winner,
         });
       } catch (error) {
         console.error(
-          "Failed to load stats:",
+          "Failed to load live lottery stats:",
           error
         );
       }
     };
 
+    // Initial load
     loadStats();
 
+    // Refresh every 5 seconds
     const interval = setInterval(
       loadStats,
-      10000
+      5000
     );
 
-    return () =>
+    return () => {
+      active = false;
       clearInterval(interval);
+    };
   }, [contract, contractReady]);
 
   const heroStats = [
