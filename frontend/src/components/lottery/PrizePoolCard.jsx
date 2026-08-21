@@ -13,7 +13,10 @@ function PrizePoolCard() {
     useState("0.0000");
 
   useEffect(() => {
-    if (!contractReady) return;
+    if (!contractReady) {
+      setPrizePool("0.0000");
+      return;
+    }
 
     let interval;
 
@@ -28,7 +31,7 @@ function PrizePoolCard() {
         }
 
         const pool =
-          await contract.getContractScaiBalance();
+          await contract.getPrizePool();
 
         const formatted =
           Number(
@@ -54,9 +57,7 @@ function PrizePoolCard() {
     );
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      clearInterval(interval);
     };
   }, [contractReady]);
 
@@ -69,13 +70,13 @@ function PrizePoolCard() {
       <h2>Prize Pool</h2>
 
       <h1>
-        {prizePool} SCAI
+        {prizePool} ETH
       </h1>
 
       <p>
-        Live SCAI reward amount currently
+        Live ETH prize pool currently
         held by the lottery smart contract
-        for lottery operations.
+        for the active lottery round.
       </p>
 
       <div className="lottery-info">
